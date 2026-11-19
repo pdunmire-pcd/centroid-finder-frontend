@@ -29,3 +29,30 @@ export function drawCentroidDot(ctx: CanvasRenderingContext2D, point: Coordinate
   ctx.strokeStyle = '#ffffff'
   ctx.stroke()
 }
+
+/** Draws a crosshair (a cross and a ring) centred on a point. */
+export function drawCrosshair(ctx: CanvasRenderingContext2D, point: Coordinate, color = '#ff1744') {
+  const size = Math.max(12, Math.round(ctx.canvas.width / 40))
+  const lineWidth = Math.max(2, Math.round(ctx.canvas.width / 600))
+
+  const tracePath = () => {
+    ctx.beginPath()
+    ctx.moveTo(point.x - size, point.y)
+    ctx.lineTo(point.x + size, point.y)
+    ctx.moveTo(point.x, point.y - size)
+    ctx.lineTo(point.x, point.y + size)
+    ctx.moveTo(point.x + size / 2, point.y)
+    ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2)
+  }
+
+  // A wider dark line first and the color on top, so it shows on any background.
+  tracePath()
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
+  ctx.lineWidth = lineWidth + 2
+  ctx.stroke()
+
+  tracePath()
+  ctx.strokeStyle = color
+  ctx.lineWidth = lineWidth
+  ctx.stroke()
+}

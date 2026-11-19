@@ -66,3 +66,28 @@ the hook returns `scale` (here 1/3) with the frame's `time` and full video size.
   the last one is still being read. The hook keeps a `busy` flag and remembers
   only the newest waiting frame; frames in between are skipped on purpose,
   which is how the page stays smooth on slow computers.
+
+## Task 4: Live overlay and trajectory — done
+
+`AnalyzeViewer` joins the pieces: `VideoPlayer` → `useVideoFrames` →
+`useCentroidFrame` → overlays. While the video plays, each analysed frame adds
+a point (seconds, x, y in full video pixels, or -1,-1 for no match) to the
+trail. Over the video sit two transparent canvases: `CrosshairOverlay` on the
+current centroid and the improved `TrajectoryCanvas` (older parts fainter, line
+breaks at no-match points and at jumps over 1 s, `onPointClick` seeks the video
+and pointer events are only on when a handler is given). "Clear trail" empties
+the list.
+
+- Files: `src/components/player/AnalyzeViewer.tsx`, `CrosshairOverlay.tsx`,
+  `trackPoints.ts` (new); `drawing.ts` (+ `drawCrosshair`);
+  `src/components/shared/TrajectoryCanvas.tsx` (same props, better drawing).
+  Tests: `tests/player/trackPoints.test.ts`,
+  `cypress/component/player/TrajectoryCanvas.cy.tsx`,
+  `cypress/component/player/AnalyzeViewer.cy.tsx`.
+- Tested: 11 new Vitest tests; 5 TrajectoryCanvas component tests (fading,
+  breaks, click → point, pass-through without handler); 3 AnalyzeViewer tests
+  with the sample video (balloon found, trail grows while playing and clears,
+  stepping does not record). A screenshot showed 96 points after 3.8 s, so at
+  640 px the analysis keeps up with all 25 fps.
+- Surprising: a CSS grid column of `1fr` will not shrink below the video's
+  natural 1920 px width, so the second panel overflowed; `minmax(0, 1fr)` fixes it.
