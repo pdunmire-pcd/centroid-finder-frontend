@@ -34,6 +34,22 @@ describe('videos page', () => {
     cy.location('pathname').should('eq', '/analyze/local')
   })
 
+  // The mock upload takes about 1 second and reports progress 10 times
+  const fakeVideo = { contents: Cypress.Buffer.from('fake'), fileName: 'new_clip.mp4', mimeType: 'video/mp4' }
+
+  it('uploads a video with a progress bar', () => {
+    cy.get('[data-cy="upload-input"]').selectFile(fakeVideo, { force: true })
+    cy.get('[data-cy="upload-progress"]').should('contain', 'Uploading new_clip.mp4')
+    cy.contains('Uploaded new_clip.mp4', { timeout: 5000 })
+  })
+
+  it('can cancel an upload', () => {
+    cy.get('[data-cy="upload-input"]').selectFile(fakeVideo, { force: true })
+    cy.get('[data-cy="upload-progress"]').contains('Cancel').click()
+    cy.contains('Upload cancelled')
+    cy.get('[data-cy="upload-progress"]').should('not.exist')
+  })
+
   it('rejects a file that is not a video', () => {
     cy.get('[data-cy="local-file-input"]').selectFile(
       { contents: Cypress.Buffer.from('hello'), fileName: 'notes.txt', mimeType: 'text/plain' },

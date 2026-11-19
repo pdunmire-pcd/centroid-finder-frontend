@@ -19,3 +19,13 @@
 **Tested:** 5 new Vitest tests for search/sort/`isVideoFile`; 5 Cypress E2E tests (cards, search, card click, local file → `/analyze/local`, non-video rejected) pass in mock mode. Screenshots: `screenshots/2-videos-light.png`, `screenshots/2-videos-phone.png`.
 
 **Surprising:** the React Hooks v7 lint rule `set-state-in-effect` forbids calling `setLoading(true)` at the top of an effect, so "Try again" bumps a `reloadKey` counter that the effect depends on, and sets loading in the click handler instead.
+
+## Task 3: Upload UI — done
+
+**What:** An "Upload to server" button next to search/sort opens a file picker and calls `uploadVideo(file, onProgress, signal)`. While uploading, a small panel shows the file name, a determinate progress bar with the percentage, and a Cancel button that calls `abort()` on an `AbortController`. On success a green "Uploaded …" message appears and the video list is fetched again; on failure the server's error message is shown; a cancel shows "Upload cancelled" rather than an error.
+
+**Files:** `src/components/videos/UploadPanel.tsx`, `src/pages/VideoChooserPage.tsx`, `cypress/e2e/videos.cy.ts`.
+
+**Tested:** 2 new Cypress tests (upload with progress → success, cancel) pass in mock mode; tsc, lint, unit tests and build pass.
+
+**Surprising:** after a cancel the request rejects like any error, so the code checks `controller.signal.aborted` to tell a cancel apart from a real failure. The baseline real-server `uploadVideo` only reports 0 and 1 (workstream D adds XHR progress), so the bar jumps on the real server until D's change lands.

@@ -5,6 +5,7 @@ import type { VideoInfo } from '../types'
 import VideoList from '../components/VideoList'
 import { withLoading } from '../hoc/withLoading'
 import { LocalFileCard } from '../components/videos/LocalFileCard'
+import { UploadPanel } from '../components/videos/UploadPanel'
 import { SORT_LABELS, filterAndSortVideos } from '../components/videos/videoFilters'
 import type { VideoSort } from '../components/videos/videoFilters'
 
@@ -70,7 +71,7 @@ export default function VideoChooserPage() {
           </Typography>
         </Box>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'flex-start' } }}>
           <TextField
             label="Search videos"
             size="small"
@@ -92,6 +93,8 @@ export default function VideoChooserPage() {
               </MenuItem>
             ))}
           </TextField>
+          {/* After an upload, fetch the list again (without the big spinner) */}
+          <UploadPanel onUploaded={() => setReloadKey((key) => key + 1)} />
         </Stack>
       </Stack>
 
