@@ -193,3 +193,22 @@ screenshots; they are removed in this commit (`cypress/screenshots` is not in
 thumbnail with a grey wall color the page shows 1105 groups and still "Looks
 good" — exactly the problem from the brief — because the baseline
 `checkFrameQuality` only checks no-match; workstream A's checks fix this.
+
+## Task 10: Tests — done
+
+Most tests were written with each task (see above). This task added a
+Cypress test that samples the real `extractedFrame.png` fixture: decoded in
+the browser without color conversion, a 1×1 click on frame pixel (1185, 933)
+gives rgb(162, 166, 41) and a 9×9 click gives the median rgb(161, 166, 41),
+the same values Node/sharp reads from the file.
+
+Totals: 32 new Vitest tests in `tests/color/` (68 in the project) and 33 new
+Cypress component tests in `cypress/component/color/` and
+`cypress/component/quality/` (39 in the project); all pass, plus the existing
+e2e test.
+
+Files: `cypress/component/color/ColorSamplerFixture.cy.tsx`.
+
+Surprising: Cypress rounds click positions to whole screen pixels, so
+clicking an exact pixel of a 1920-wide frame shown at 480 px was off by up to
+3 pixels. The test crops a 40×40 window and shows it 10× larger instead.
