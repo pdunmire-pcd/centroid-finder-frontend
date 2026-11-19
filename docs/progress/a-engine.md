@@ -117,3 +117,25 @@ is a `Window`; its `onmessage`/`postMessage(msg, { transfer })` shape is the sam
 as a worker's, so no extra lib is needed. There is no React testing library in
 the project, so the hook itself is a thin wrapper and the logic is tested
 through `LatestFrameScheduler`.
+
+## Task 6: Frame quality checks — done
+
+**What I built.** `checkFrameQuality(analysis)` now returns plain-language
+warnings (each with a `message` and a `fix`) for: nothing matching
+(`no-match`), more than 20% of the frame matching (`too-many-matching`), the
+largest group touching any edge of the frame (`touches-edge`), a second group at
+least half the size of the largest (`competing-group`) and more than 50 groups
+(`many-groups`). The limits are exported constants: `TOO_MANY_MATCHING_FRACTION`,
+`COMPETING_GROUP_RATIO`, `MANY_GROUPS_COUNT`.
+
+**Files.** `src/centroid/engine.ts`, `tests/engine/quality.test.ts` (new).
+
+**Tests.** 10 new tests, one or more per warning, all four edges, a
+FrameAnalysis without `bounds` (edge computed from `binary`), and an analysis
+made at scale 0.25. Full suite: 90 passed.
+
+**Decision.** The edge check only looks at the *largest* group, because that is
+the one the tracker reports; small noise along the border is not worth a
+warning. It uses `analysis.bounds` when present, otherwise it finds the groups
+in `binary` again, so hand-made FrameAnalysis objects (e.g. in other
+workstreams' tests) still work.

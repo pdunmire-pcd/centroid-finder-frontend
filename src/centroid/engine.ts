@@ -143,16 +143,98 @@ export function distanceHistogram(frame: RgbaImage, color: number, bins: number)
   return counts
 }
 
-/** Quality checks for one frame. Baseline: only no-match. TODO(workstream A). */
+/** Warn when more than this fraction of the frame matches (0.2 = 20%). */
+export const TOO_MANY_MATCHING_FRACTION = 0.2
+/** Warn when the second group is at least this fraction of the largest. */
+export const COMPETING_GROUP_RATIO = 0.5
+/** Warn when there are more groups than this. */
+export const MANY_GROUPS_COUNT = 50
+
+/** Bounding box of the largest group, and the size of the frame it is in. */
+function largestGroupBox(
+  analysis: FrameAnalysis,
+): { box: GroupBounds; width: number; height: number } | null {
+  // analyzeFrame fills in `bounds` (full-size coordinates)...
+  if (analysis.bounds && analysis.bounds.length > 0) {
+    return {
+      box: analysis.bounds[0],
+      width: analysis.sourceWidth ?? analysis.width,
+      height: analysis.sourceHeight ?? analysis.height,
+    }
+  }
+  // ...but if someone built a FrameAnalysis without it, work it out from `binary`.
+  const results = findConnectedGroupsWithBounds(analysis.binary, analysis.width, analysis.height)
+  if (results.length === 0) return null
+  return { box: results[0].bounds, width: analysis.width, height: analysis.height }
+}
+
+/**
+ * Quality checks for one frame, in plain language. Returns an empty list when
+ * everything looks fine. The limits are the exported constants above.
+ */
 export function checkFrameQuality(analysis: FrameAnalysis): Warning[] {
-  if (analysis.groups.length === 0) {
+  const { groups } = analysis
+  if (groups.length === 0) {
     return [{
       code: 'no-match',
       message: 'No pixels are within the threshold in this frame.',
       fix: 'Raise the threshold or sample the object again.',
     }]
   }
-  return []
+
+  const warnings: Warning[] = []
+
+  // 1. Too much of the frame matches: the threshold is probably too loose.
+  const totalPixels = analysis.width * analysis.height
+  const matchingFraction = totalPixels > 0 ? analysis.matchingPixels / totalPixels : 0
+  if (matchingFraction > TOO_MANY_MATCHING_FRACTION) {
+    warnings.push({
+      code: 'too-many-matching',
+      message: `${Math.round(matchingFraction * 100)}% of the frame matches the color, ` +
+        'so the background is probably being picked up too.',
+      fix: 'Lower the threshold, or pick a color that stands out more from the background.',
+    })
+  }
+
+  // 2. The largest group touches the frame edge: part of the object may be
+  //    outside the picture, which pulls the centroid away from its real centre.
+  const edge = largestGroupBox(analysis)
+  if (edge && (
+    edge.box.minX <= 0 || edge.box.minY <= 0 ||
+    edge.box.maxX >= edge.width - 1 || edge.box.maxY >= edge.height - 1
+  )) {
+    warnings.push({
+      code: 'touches-edge',
+      message: 'The largest group touches the edge of the frame, so part of the object ' +
+        'may be cut off and its centroid may be off.',
+      fix: 'Check that the object is fully in view, or lower the threshold if the ' +
+        'background along the edge is matching.',
+    })
+  }
+
+  // 3. A second group almost as big as the largest: the tracker could jump
+  //    between the two from frame to frame.
+  if (groups.length > 1 && groups[1].size >= COMPETING_GROUP_RATIO * groups[0].size) {
+    const percent = Math.round((groups[1].size / groups[0].size) * 100)
+    warnings.push({
+      code: 'competing-group',
+      message: `A second group is ${percent}% the size of the largest one, so the ` +
+        'tracked point may jump between them.',
+      fix: 'Lower the threshold or sample a color that only the tracked object has.',
+    })
+  }
+
+  // 4. Lots of groups: usually noise scattered all over the frame.
+  if (groups.length > MANY_GROUPS_COUNT) {
+    warnings.push({
+      code: 'many-groups',
+      message: `There are ${groups.length} separate groups, which usually means ` +
+        'noise is matching all over the frame.',
+      fix: 'Lower the threshold a little, or sample the object again under the same lighting.',
+    })
+  }
+
+  return warnings
 }
 
 /** Indexes of points that jump further than maxJump px from the previous tracked point. */
