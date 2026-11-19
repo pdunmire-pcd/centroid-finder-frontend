@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "app": "bash scripts/start-app.sh",
+    "app:mock": "bash scripts/start-app.sh --mock",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "e2e": "cypress run",

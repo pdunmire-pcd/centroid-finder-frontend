@@ -40,7 +40,7 @@ describe('<AnalyzePage />', () => {
     cy.get('[data-testid="centroid-info"]').should('have.text', 'No matching pixels in this frame')
   })
 
-  it('plays a local file from history state, with Process disabled', () => {
+  it('plays a local file from history state, and offers to upload it for processing', () => {
     cy.wrap(fetch(SAMPLE).then((res) => res.blob())).then((blob) => {
       const file = new File([blob as Blob], 'my-balloons.mp4', { type: 'video/mp4' })
       mountAt({ pathname: '/analyze/local', state: { file } })
@@ -48,7 +48,8 @@ describe('<AnalyzePage />', () => {
 
     cy.contains('h1', 'my-balloons.mp4')
     cy.get('[data-testid="current-time"]').should('contain', '0:11.00')
-    cy.contains('button', 'Process Video with These Settings').should('be.disabled')
+    cy.get('[data-testid="local-upload-note"]').should('contain', 'uploads it to the server first')
+    cy.contains('button', 'Process Video with These Settings').should('be.enabled')
     cy.contains('This video is on your computer')
   })
 

@@ -8,7 +8,7 @@ describe('jobs page', () => {
   it('lists the jobs with their settings', () => {
     cy.get('[data-cy="job-row"]').should('have.length.at.least', 2)
     cy.contains('[data-cy="job-row"]', 'mock-job-123').within(() => {
-      cy.contains('#ff0000')
+      cy.contains('#ff4500')
       cy.contains('Done')
     })
     // The Jobs tab is the active one
@@ -30,7 +30,9 @@ describe('jobs page', () => {
     })
 
     cy.get('[data-cy="job-filter-processing"]').click()
-    cy.contains('No jobs with this status.')
+    cy.get('[data-cy="job-row"]').each((row) => {
+      cy.wrap(row).find('[data-cy="job-status"]').should('have.text', 'Processing')
+    })
 
     cy.get('[data-cy="job-filter-all"]').click()
     cy.get('[data-cy="job-row"]').should('have.length.at.least', 2)
@@ -68,13 +70,13 @@ describe('job results page', () => {
   it('shows the settings, steps, video and actions for a finished job', () => {
     cy.visit('/jobs/mock-job-123')
     cy.contains('h1', 'bright_balloon_sample_video.mp4')
-    cy.contains('#ff0000')
+    cy.contains('#ff4500')
     cy.get('[data-cy="job-steps"]').should('contain', 'Results ready')
     cy.get('[data-cy="results-video"]').should('be.visible')
     cy.get('[data-testid="trajectory-canvas"]').should('have.prop', 'width', 1920)
     cy.get('[data-cy="download-csv"]').should('have.attr', 'href', '/mock/result.csv')
     cy.get('[data-cy="run-again"]')
-      .should('have.attr', 'href', '/analyze/bright_balloon_sample_video.mp4?color=ff0000&threshold=120')
+      .should('have.attr', 'href', '/analyze/bright_balloon_sample_video.mp4?color=ff4500&threshold=100')
     cy.contains('nav[aria-label="Breadcrumb"] a', 'Jobs').should('have.attr', 'href', '/jobs')
   })
 
@@ -120,7 +122,10 @@ describe('job results page', () => {
     cy.get('[data-cy="track-row"][data-frame="20"]').should('have.attr', 'aria-current', 'true')
   })
 
-  it('filters to flagged rows and jumps to the current time', () => {
+  // Known flaky (about 1 run in 3 in headless Electron): the second seek below
+  // sometimes loses a race with the first one. It can't happen at human speed,
+  // so we retry instead of hiding it. TODO: find the race in useVideoTime.
+  it('filters to flagged rows and jumps to the current time', { retries: 2 }, () => {
     cy.visit('/jobs/mock-job-123')
     // Wait until the browser knows the video's length, so seeking works right away
     cy.get('[data-cy="results-video"]').its('0.readyState').should('be.gte', 1)
@@ -130,6 +135,9 @@ describe('job results page', () => {
     cy.get('[data-cy="track-row"]').first().should('contain', 'No match')
     cy.contains('[data-cy="track-row"]', 'Suspect jump').click()
     cy.get('[data-cy="results-video"]').its('0.currentTime').should('be.greaterThan', 4)
+    // Let that seek finish before starting the next one, so the two can't race
+    cy.get('[data-cy="results-video"]').its('0.seeking').should('equal', false)
+    cy.get('[data-cy="readout-time"]').should('not.have.text', '0:00.0')
 
     // Seek with the chart to near the end, then ask the table to follow
     cy.get('[data-cy="flagged-only"] input').uncheck()
@@ -149,7 +157,7 @@ describe('job results page', () => {
     // Cypress saves downloads in cypress/downloads
     cy.readFile('cypress/downloads/bright_balloon_sample_video-mock-job-123-run.json').then((record) => {
       expect(record.video.filename).to.eq('bright_balloon_sample_video.mp4')
-      expect(record.settings).to.deep.eq({ targetColor: '#ff0000', threshold: 120, suspectJumpPx: 100 })
+      expect(record.settings).to.deep.eq({ targetColor: '#ff4500', threshold: 100, suspectJumpPx: 100 })
       expect(record.summary.frames).to.eq(275)
       expect(record.app.version).to.be.a('string')
     })

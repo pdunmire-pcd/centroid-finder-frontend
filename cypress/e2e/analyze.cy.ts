@@ -53,8 +53,9 @@ describe('Analyze page', () => {
     cy.get('[data-testid="video"]').should('have.attr', 'src').and('match', /^blob:/)
     cy.get('[data-testid="centroid-info"]').should('contain', 'Centroid at (')
 
-    // Local videos can't be sent to the server yet.
-    cy.contains('button', 'Process Video with These Settings').should('be.disabled')
+    // Processing a local video uploads it first, so the button is enabled.
+    cy.get('[data-testid="local-upload-note"]').should('contain', 'uploads it to the server first')
+    cy.contains('button', 'Process Video with These Settings').should('be.enabled')
   })
 
   it('asks for a file on /analyze/local without one', () => {
