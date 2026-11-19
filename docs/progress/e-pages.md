@@ -89,3 +89,15 @@
 **Tested:** 4 new Vitest tests (full record, defaults/nulls, JSON round trip, safe file name); 1 new E2E test clicks the button and reads the downloaded file from `cypress/downloads`.
 
 **Surprising:** `import { version } from '../../../package.json'` works with this TypeScript setup, and Vite bundles only that one field, not the whole `package.json` with its dependency list.
+
+## Task 10: Tests — done
+
+**What:** Most tests were added with each task. This task adds Cypress component tests for the CSV table (pagination, click and Enter to seek, flagged filter, jump to current) and a Vitest test for the nav-tab helper. It also runs every suite together. The existing `processing.cy.ts` did not need changes, because the shell kept its text and the old `/preview/:filename` route.
+
+**Totals:** Vitest 69 tests (36 old + 33 new) in `tests/`; Cypress E2E 20 tests (`videos.cy.ts` 7, `jobs.cy.ts` 12, `processing.cy.ts` 1); Cypress component 12 tests (`BinarizedPreview` 6, `results/PositionChart` 2, `results/TrackTable` 4).
+
+**Files:** `cypress/component/results/TrackTable.cy.tsx`, `tests/layout/nav.test.ts`.
+
+**Tested:** `npx tsc -b`, `npm run lint`, `npm test`, `npm run build`, `npx cypress run` (against `vite --mode mock`) and `npx cypress run --component` all pass. The Cypress and `tests/` files are not part of `tsc -b`, so they were also typechecked once with a temporary tsconfig that includes `cypress/**` and `tests/**` (no errors). Screenshot: `screenshots/10-results-phone.png` (390 px wide, no sideways scrolling).
+
+**Surprising:** Cypress prints a harmless `spawn Unknown system error -86` on this Mac (an Intel-only helper on Apple Silicon), but the tests still run and pass.
