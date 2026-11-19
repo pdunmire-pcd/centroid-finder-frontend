@@ -45,3 +45,24 @@ when a button has focus (otherwise it would toggle twice).
   to the *middle* of the next frame, so a rounding error can never show the
   frame before. (3) In Cypress component tests the `public/` folder is served
   under `import.meta.env.BASE_URL` (`/__cypress/src/`), not at `/`.
+
+## Task 3: useVideoFrames hook — done
+
+`useVideoFrames(video, maxWidth = 640)` reads the frame on screen into an
+`ImageData` every time a new one shows (via `watchVideoFrames`, so
+`requestVideoFrameCallback` with a `requestAnimationFrame` fallback), and also
+on `seeked` and `loadeddata`, so stepping while paused updates too. It uses
+`createImageBitmap(video, { colorSpaceConversion: 'none', resizeWidth, resizeHeight })`
+— the same color-safe read as `BinarizedPreview` — and draws the bitmap on an
+offscreen canvas to get the pixels. A 1920x1080 video is read at 640x360 and
+the hook returns `scale` (here 1/3) with the frame's `time` and full video size.
+
+- Files: `src/hooks/useVideoFrames.ts` (new),
+  `cypress/component/player/useVideoFrames.cy.tsx` (new).
+- Tested: 3 Cypress component tests with the sample video (first frame is read
+  at 640x360, stepping while paused reads a new frame at the right time, pixels
+  are real colors).
+- Surprising: reading a frame is asynchronous, so a new frame can arrive while
+  the last one is still being read. The hook keeps a `busy` flag and remembers
+  only the newest waiting frame; frames in between are skipped on purpose,
+  which is how the page stays smooth on slow computers.
