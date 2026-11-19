@@ -163,3 +163,33 @@ a remount Load restores color and samples, and Delete removes it.
 
 Surprising: the pure storage functions take the storage as a parameter, so
 they can be tested in Node, where `window.localStorage` does not exist.
+
+## Task 9: Interim integration on PreviewPage — done
+
+`PreviewPage` now loads the thumbnail into `ImageData` once (small local
+`useImageData` hook) and passes it to `ColorToolsPanel` (left column, which
+replaces the old "Original" image, since the sampler canvas shows the same
+frame), and to the binarized preview, a "Frame check" card (`LiveStatsPanel`
++ `WarningsPanel`, fed by `analyzeFrame` / `checkFrameQuality` with
+`useDeferredValue` so slider drags stay smooth), the histogram and the
+distance map. `ProcessingControls` got "Exact match" / "Any color" labels
+under the 0–442 slider, a numeric threshold box (clamped to 0–442) and a
+one-line explanation of the threshold.
+
+Files: `src/pages/PreviewPage.tsx`, `src/components/ProcessingControls.tsx`,
+`src/components/color/ColorSampler.tsx` (row padding),
+`cypress/component/color/ProcessingControls.cy.tsx`.
+
+Tested: all 37 component tests and the existing e2e test pass against a mock
+dev server; a temporary screenshot spec (not committed) clicked two samples,
+used the color, applied the threshold and showed every panel working.
+
+Surprising: (1) reading `bitmap.width` after `bitmap.close()` gives 0, so the
+frame never loaded at first; now the canvas size is used. (2) Port 5173 was
+already taken by another agent's dev server, so my e2e run used port 5391.
+(3) Earlier `git add -A` commits had picked up two Cypress failure
+screenshots; they are removed in this commit (`cypress/screenshots` is not in
+`.gitignore`, which I don't own; suggest adding it at merge). (4) On the mock
+thumbnail with a grey wall color the page shows 1105 groups and still "Looks
+good" — exactly the problem from the brief — because the baseline
+`checkFrameQuality` only checks no-match; workstream A's checks fix this.

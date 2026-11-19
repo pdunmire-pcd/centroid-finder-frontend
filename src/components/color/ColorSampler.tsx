@@ -199,6 +199,7 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
             <ListItem
               key={`${sample.seconds}-${sample.x}-${sample.y}-${index}`}
               disableGutters
+              sx={{ pr: 10 }} // leave room for the Remove button
               secondaryAction={
                 <Button size="small" onClick={() => removeSample(index)} aria-label={`Remove sample ${index + 1}`}>
                   Remove
