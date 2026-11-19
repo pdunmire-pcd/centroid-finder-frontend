@@ -139,3 +139,24 @@ the one the tracker reports; small noise along the border is not worth a
 warning. It uses `analysis.bounds` when present, otherwise it finds the groups
 in `binary` again, so hand-made FrameAnalysis objects (e.g. in other
 workstreams' tests) still work.
+
+## Task 7: Track helpers and CSV parser — done
+
+**What I built.** `findSuspectFrames(points, maxJump, frameSize?)` still flags
+big jumps (skipping over no-match frames) and, when given the frame size, also
+flags tracked points sitting on the frame edge; each index appears once, in
+order. `summarizeTrack` gained optional fields `frameIntervalSeconds`,
+`longestGapFrames` and `longestGapSeconds` (the longest run of no-match frames).
+`parseTrackCsv` now keeps only lines that have three real numbers, so it accepts
+the JAR's header-less `0.000,1080,581` rows, a `seconds,x,y` header, blank lines,
+CRLF or lone CR, spaces, a byte-order mark and extra columns, and skips broken rows
+instead of returning `NaN` points.
+
+**Files.** `src/centroid/engine.ts`, `tests/engine/track.test.ts` (new).
+
+**Tests.** 12 new tests (6 parser, 4 suspect frames, 2 summary). Full suite:
+102 passed.
+
+**Surprising.** The old parser turned a row like `0.04,abc,4` into a point with
+`x: NaN`, which would silently break charts; such rows are now skipped. A "no
+match" point is now `x < 0 || y < 0` everywhere (before, only `x` was checked).

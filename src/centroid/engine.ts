@@ -237,34 +237,82 @@ export function checkFrameQuality(analysis: FrameAnalysis): Warning[] {
   return warnings
 }
 
-/** Indexes of points that jump further than maxJump px from the previous tracked point. */
-export function findSuspectFrames(points: TrackPoint[], maxJump: number): number[] {
+/** A point with x = -1 or y = -1 means nothing matched in that frame. */
+function isTracked(point: TrackPoint): boolean {
+  return point.x >= 0 && point.y >= 0
+}
+
+/**
+ * Indexes (in `points`) of frames worth a second look, in increasing order:
+ *
+ * - a tracked point that jumps further than maxJump px from the previous
+ *   tracked point (frames with no match are skipped over)
+ * - when `frameSize` is given: a tracked point sitting on the edge of the
+ *   frame, which usually means the object is partly out of view
+ */
+export function findSuspectFrames(
+  points: TrackPoint[],
+  maxJump: number,
+  frameSize?: { width: number; height: number },
+): number[] {
   const suspect: number[] = []
-  let prev: TrackPoint | null = null
-  points.forEach((p, i) => {
-    if (p.x < 0) return
-    if (prev && Math.hypot(p.x - prev.x, p.y - prev.y) > maxJump) suspect.push(i)
-    prev = p
+  let previous: TrackPoint | null = null
+
+  points.forEach((point, index) => {
+    if (!isTracked(point)) return
+
+    const jumped =
+      previous !== null && Math.hypot(point.x - previous.x, point.y - previous.y) > maxJump
+    const onEdge =
+      frameSize !== undefined &&
+      (point.x <= 0 || point.y <= 0 ||
+        point.x >= frameSize.width - 1 || point.y >= frameSize.height - 1)
+
+    if (jumped || onEdge) suspect.push(index)
+    previous = point
   })
   return suspect
 }
 
 export type TrackSummary = {
+  /** number of rows (frames) */
   frames: number
+  /** percentage of frames with a match, 0-100 */
   trackedPct: number
+  /** frames with no match (x = y = -1) */
   noMatch: number
+  /** total path length between consecutive tracked points */
   distancePx: number
   avgSpeedPxPerSec: number
+  /** time from the first row to the last row */
   durationSeconds: number
+  /** average time between rows, e.g. 0.04 at 25 fps (0 with fewer than 2 rows) */
+  frameIntervalSeconds?: number
+  /** most no-match frames in a row */
+  longestGapFrames?: number
+  /** longestGapFrames * frameIntervalSeconds */
+  longestGapSeconds?: number
 }
 
 export function summarizeTrack(points: TrackPoint[]): TrackSummary {
-  const tracked = points.filter((p) => p.x >= 0)
+  const tracked = points.filter(isTracked)
+
   let distancePx = 0
   for (let i = 1; i < tracked.length; i++) {
     distancePx += Math.hypot(tracked[i].x - tracked[i - 1].x, tracked[i].y - tracked[i - 1].y)
   }
+
+  // longest run of frames with no match
+  let longestGapFrames = 0
+  let currentGap = 0
+  for (const point of points) {
+    currentGap = isTracked(point) ? 0 : currentGap + 1
+    longestGapFrames = Math.max(longestGapFrames, currentGap)
+  }
+
   const durationSeconds = points.length ? points[points.length - 1].seconds - points[0].seconds : 0
+  const frameIntervalSeconds = points.length > 1 ? durationSeconds / (points.length - 1) : 0
+
   return {
     frames: points.length,
     trackedPct: points.length ? (tracked.length / points.length) * 100 : 0,
@@ -272,20 +320,43 @@ export function summarizeTrack(points: TrackPoint[]): TrackSummary {
     distancePx,
     avgSpeedPxPerSec: durationSeconds > 0 ? distancePx / durationSeconds : 0,
     durationSeconds,
+    frameIntervalSeconds,
+    longestGapFrames,
+    longestGapSeconds: longestGapFrames * frameIntervalSeconds,
   }
 }
 
+/** Number(text), but only for real numbers: '' and 'abc' give null. */
+function toNumber(text: string): number | null {
+  const trimmed = text.trim()
+  if (trimmed === '') return null
+  const value = Number(trimmed)
+  return Number.isFinite(value) ? value : null
+}
+
 /**
- * Parses the JAR's CSV: "seconds,x,y" rows, one per frame (e.g. 0.040 apart).
- * The header row is optional; the real JAR writes none.
+ * Parses the JAR's CSV: "seconds,x,y" rows, one per frame (about 25 rows per
+ * second), e.g. "0.000,1080,581". x = y = -1 means no match in that frame.
+ *
+ * Forgiving on purpose: the real JAR writes no header, but a "seconds,x,y"
+ * header (or any other line that is not three numbers) is skipped, as are
+ * blank lines. Windows (CRLF) line endings, spaces around values, a UTF-8
+ * byte-order mark and extra columns are all fine.
  */
 export function parseTrackCsv(text: string): TrackPoint[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !/^seconds/i.test(line))
-    .map((line) => {
-      const [seconds, x, y] = line.split(',').map(Number)
-      return { seconds, x, y }
-    })
+  const points: TrackPoint[] = []
+  const clean = text.replace(/^\uFEFF/, '') // byte-order mark some editors add
+
+  for (const line of clean.split(/\r\n|\r|\n/)) {
+    const parts = line.split(',')
+    if (parts.length < 3) continue // blank line or not a data row
+
+    const seconds = toNumber(parts[0])
+    const x = toNumber(parts[1])
+    const y = toNumber(parts[2])
+    if (seconds === null || x === null || y === null) continue // e.g. the header
+
+    points.push({ seconds, x, y })
+  }
+  return points
 }
