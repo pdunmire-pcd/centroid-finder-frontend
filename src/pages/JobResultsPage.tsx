@@ -13,7 +13,8 @@ import { JobProgressSteps } from '../components/results/JobProgressSteps'
 import { ResultsPlayer } from '../components/results/ResultsPlayer'
 import { SummaryTiles } from '../components/results/SummaryTiles'
 import { PositionChart } from '../components/results/PositionChart'
-import { DEFAULT_MAX_JUMP_PX } from '../components/results/trackData'
+import { TrackTable } from '../components/results/TrackTable'
+import { DEFAULT_MAX_JUMP_PX, pointIndexAt } from '../components/results/trackData'
 import { formatDateTime, formatJobDuration, runAgainUrl, shortJobId } from '../components/results/format'
 import { useVideoTime } from '../components/results/useVideoTime'
 
@@ -243,6 +244,15 @@ export default function JobResultsPage() {
               suspectIndexes={suspectIndexes}
               // Rounded to 0.1 s, so the chart redraws ~10 times a second instead of 60
               currentTime={Math.round(currentTime * 10) / 10}
+              onSeek={seek}
+            />
+          </Paper>
+
+          <Paper sx={{ p: 2, gridColumn: '1 / -1' }}>
+            <TrackTable
+              points={points}
+              suspectIndexes={suspectIndexes}
+              currentIndex={pointIndexAt(points, currentTime)}
               onSeek={seek}
             />
           </Paper>

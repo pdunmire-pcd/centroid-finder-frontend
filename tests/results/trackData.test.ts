@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildTableRows,
+  pageForFrame,
   downsampleForChart,
   isTracked,
   noMatchBands,
@@ -90,5 +92,34 @@ describe('noMatchBands', () => {
 
   it('returns nothing when every frame is tracked', () => {
     expect(noMatchBands([{ seconds: 0, x: 1, y: 1 }])).toEqual([])
+  })
+})
+
+describe('buildTableRows', () => {
+  it('notes no-match rows and suspect jumps', () => {
+    const rows = buildTableRows(points, [3])
+    expect(rows.map((r) => r.note)).toEqual([null, null, 'No match', 'Suspect jump', null])
+    expect(rows[4]).toEqual({ index: 4, point: points[4], note: null })
+  })
+})
+
+describe('pageForFrame', () => {
+  const many = buildTableRows(
+    Array.from({ length: 100 }, (_, i) => ({ seconds: i, x: i % 10 === 0 ? -1 : i, y: 1 })),
+    [],
+  )
+
+  it('finds the page that shows a frame', () => {
+    expect(pageForFrame(many, 0, 25)).toBe(0)
+    expect(pageForFrame(many, 24, 25)).toBe(0)
+    expect(pageForFrame(many, 25, 25)).toBe(1)
+    expect(pageForFrame(many, 99, 25)).toBe(3)
+  })
+
+  it('uses the last shown row before the frame when rows are filtered', () => {
+    // Only frames 0, 10, 20 ... 90 are flagged; frame 35 is between 30 and 40
+    const flagged = many.filter((r) => r.note !== null)
+    expect(pageForFrame(flagged, 35, 2)).toBe(1) // 30 is the 4th flagged row -> page 1
+    expect(pageForFrame(flagged, -1, 2)).toBe(0)
   })
 })

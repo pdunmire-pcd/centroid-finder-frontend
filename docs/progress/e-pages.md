@@ -69,3 +69,13 @@
 **Tested:** 6 new Vitest tests (downsampling and bands); 2 Cypress component tests (lines/band/legend drawn; a click calls `onSeek` with ~5 s); 2 new E2E tests (clicking the chart moves the video's `currentTime`; changing the max jump changes the suspect count). Screenshot: `screenshots/7-results-chart-dark.png`.
 
 **Surprising:** at first the suspect marks used the theme's warning orange, which looked almost the same as the y line, so they now use their own magenta token. The chart is wrapped in `memo` and gets the time rounded to 0.1 s, so it redraws about 10 times a second while the video plays instead of 60. Recharts only knows which row is under the mouse after a `mousemove`, so the Cypress tests trigger one before the click.
+
+## Task 8: CSV table — done
+
+**What:** Under the chart, the CSV is shown as a table with 25 rows per page: frame, seconds, x, y and a note chip ("No match" or "Suspect jump"). Flagged rows are tinted (grey for no match, magenta for suspect jumps). The row the video is showing gets a blue bar on the left and `aria-current`. Clicking a row, or pressing Enter/Space on it, seeks the video. "Only flagged" hides the normal rows, and "Jump to current time" turns to the page that holds the current frame (or the last flagged row before it when filtered).
+
+**Files:** `src/components/results/TrackTable.tsx`, `src/components/results/trackData.ts` (`buildTableRows`, `pageForFrame`), `src/pages/JobResultsPage.tsx`, `tests/results/trackData.test.ts`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 3 new Vitest tests (notes, page lookup with and without the filter); 2 new E2E tests (clicking row 21 moves the video to 0.8 s; the flagged filter shows 18 rows, a suspect row seeks, and jump-to-current lands on frame 226). Screenshot: `screenshots/8-results-full-light.png` (the whole page; the top bar appears twice because Cypress stitches the full-page shot and the bar is sticky).
+
+**Surprising:** `225 × 0.04` is `9.000000000000002` in floating point, so at exactly 9 s the video shows frame 224, not 225; the test seeks to 9.01 s. The E2E test also waits for the video's metadata (`readyState ≥ 1`) before seeking, otherwise the seek can get lost while the video is still loading.

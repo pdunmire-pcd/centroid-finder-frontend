@@ -111,6 +111,38 @@ describe('job results page', () => {
     cy.get('[data-cy="position-chart"]').should('contain', 'Suspect jump (0)')
   })
 
+  it('jumps the video when a table row is clicked', () => {
+    cy.visit('/jobs/mock-job-123')
+    cy.get('[data-cy="track-row"]').should('have.length', 25) // one page
+    cy.get('[data-cy="track-row"][data-frame="20"]').click()
+    // Frame 20 is at 20 x 0.04 = 0.8 s
+    cy.get('[data-cy="results-video"]').its('0.currentTime').should('be.closeTo', 0.8, 0.01)
+    cy.get('[data-cy="track-row"][data-frame="20"]').should('have.attr', 'aria-current', 'true')
+  })
+
+  it('filters to flagged rows and jumps to the current time', () => {
+    cy.visit('/jobs/mock-job-123')
+    // Wait until the browser knows the video's length, so seeking works right away
+    cy.get('[data-cy="results-video"]').its('0.readyState').should('be.gte', 1)
+    cy.get('[data-cy="flagged-only"] input').check()
+    // 15 no-match rows + 3 suspect jumps
+    cy.get('[data-cy="track-row"]').should('have.length', 18)
+    cy.get('[data-cy="track-row"]').first().should('contain', 'No match')
+    cy.contains('[data-cy="track-row"]', 'Suspect jump').click()
+    cy.get('[data-cy="results-video"]').its('0.currentTime').should('be.greaterThan', 4)
+
+    // Seek with the chart to near the end, then ask the table to follow
+    cy.get('[data-cy="flagged-only"] input').uncheck()
+    cy.get('[data-cy="results-video"]').then((video) => {
+      // 9.01, not 9: 225 x 0.04 is 9.000000000000002 in floating point
+      ;(video[0] as HTMLVideoElement).currentTime = 9.01
+    })
+    cy.get('[data-cy="readout-time"]').should('have.text', '0:09.0')
+    cy.get('[data-cy="jump-to-current"]').click()
+    // 9.01 s is frame 225 (0-based), on page 10 (rows 226-250)
+    cy.get('[data-cy="track-row"][data-frame="225"]').should('have.attr', 'aria-current', 'true')
+  })
+
   it('shows the error step for a failed job', () => {
     cy.visit('/jobs/mock-job-122')
     cy.get('[data-cy="job-steps"]').should('contain', 'Failed').and('contain', 'Error processing video')

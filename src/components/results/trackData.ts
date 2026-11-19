@@ -92,3 +92,33 @@ export function noMatchBands(points: TrackPoint[]): TimeBand[] {
 
 /** Default for "suspect jump": a move bigger than this between frames is flagged. */
 export const DEFAULT_MAX_JUMP_PX = 100
+
+// ---- Table helpers ----
+
+export type RowNote = 'No match' | 'Suspect jump' | null
+
+/** One row of the CSV table: the point, its frame index, and why it is flagged. */
+export type TableRow = { index: number; point: TrackPoint; note: RowNote }
+
+/** Adds a note to every row: "No match" for -1,-1 rows, "Suspect jump" for suspect frames. */
+export function buildTableRows(points: TrackPoint[], suspectIndexes: number[]): TableRow[] {
+  const suspect = new Set(suspectIndexes) // Set.has() is fast, even with many suspects
+  return points.map((point, index) => {
+    let note: RowNote = null
+    if (!isTracked(point)) note = 'No match'
+    else if (suspect.has(index)) note = 'Suspect jump'
+    return { index, point, note }
+  })
+}
+
+/**
+ * Which page (0-based) shows the frame `frameIndex`. If that exact frame is
+ * not in `rows` (e.g. only flagged rows are shown), use the last row before it.
+ */
+export function pageForFrame(rows: TableRow[], frameIndex: number, rowsPerPage: number): number {
+  let position = 0
+  rows.forEach((row, i) => {
+    if (row.index <= frameIndex) position = i
+  })
+  return Math.floor(position / rowsPerPage)
+}
