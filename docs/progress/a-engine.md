@@ -64,3 +64,26 @@ columns, zero/negative thresholds and a pixel exactly on the threshold.
 **Surprising.** Comparing two 2-million-entry arrays with `toEqual` is very slow,
 so the binary images are compared with a plain loop that reports the first
 mismatching pixel.
+
+## Task 4: `scale` option in analyzeFrame — done
+
+**What I built.** `analyzeFrame(frame, color, threshold, scale)` with a scale
+between 0 and 1 first makes a smaller nearest-neighbour copy of the frame
+(each small pixel copies the original pixel nearest its centre), analyses that,
+and converts centroids, sizes and bounding boxes back to full-size coordinates.
+At scale 1 nothing changes and results still match Java exactly; at scale < 1
+results are approximate (documented in the code). `FrameAnalysis` gained
+optional fields: `bounds`, `sourceWidth`, `sourceHeight` and `scale`.
+
+**Files.** `src/centroid/downscale.ts` (new), `src/centroid/engine.ts`,
+`src/centroid/index.ts`, `tests/engine/scale.test.ts` (new).
+
+**Tests.** 8 new tests: scale validation, downscale size and minimum 1x1, the new
+fields at scale 1, invalid scale, a known rectangle at scale 0.5 (centroid within
+2 px, exact size and exact bounds), edge-touching preserved, and the four big
+squares in `squares.jpg` at scale 0.5 (centroids within 4 px, sizes within 5%).
+Full suite: 70 passed.
+
+**Decision.** `binary`, `width`, `height` and `matchingPixels` describe the small
+copy (so `binary.length === width * height` always holds), while `groups` and
+`bounds` are always in full-size coordinates, given by `sourceWidth/Height`.

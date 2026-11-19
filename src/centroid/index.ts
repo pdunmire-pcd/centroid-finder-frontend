@@ -24,3 +24,4 @@ export {
   squaredThresholdLimit,
   type BinarizeResult,
 } from './fastBinarizer'
+export { downscaleNearest, normalizeScale, scaleGroupsUp } from './downscale'

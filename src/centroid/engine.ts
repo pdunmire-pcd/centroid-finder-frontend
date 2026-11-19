@@ -6,27 +6,48 @@
 
 import type { RgbaImage } from './binarizer'
 import { euclideanColorDistance } from './colorDistance'
+import { downscaleNearest, normalizeScale, scaleGroupsUp } from './downscale'
 import { binarizeInto } from './fastBinarizer'
-import { findConnectedGroupsFast } from './fastGroupFinder'
+import { findConnectedGroupsWithBounds, type GroupBounds } from './fastGroupFinder'
 import type { Group } from './group'
 import type { RgbTriple, TrackPoint, Warning } from '../types'
 
 /** Everything one analysed frame gives back. */
 export type FrameAnalysis = {
-  /** biggest first, same order as findConnectedGroups */
+  /**
+   * Biggest first, same order as findConnectedGroups. Centroids and sizes are
+   * always in FULL-SIZE frame coordinates, even when `scale` < 1.
+   */
   groups: Group[]
-  /** width * height, 1 = within the threshold */
+  /** width * height entries, 1 = within the threshold */
   binary: Uint8Array
+  /** size of `binary` (smaller than the frame when scale < 1) */
   width: number
   height: number
+  /** how many entries of `binary` are 1 */
   matchingPixels: number
+  /** bounding box of each group, same order as `groups`, full-size coordinates */
+  bounds?: GroupBounds[]
+  /** size of the original frame (the coordinate system of `groups`) */
+  sourceWidth?: number
+  sourceHeight?: number
+  /** the scale that was actually used, in (0, 1] */
+  scale?: number
 }
 
 /**
- * Binarizes a frame and finds its groups.
- * `scale` (0-1] analyses a smaller copy and scales coordinates back up.
- * Uses the fast flat-array path (binarizeInto + findConnectedGroupsFast), which
- * gives exactly the same groups as toBinaryArray + findConnectedGroups.
+ * Binarizes a frame and finds its groups, using the fast flat-array path
+ * (binarizeInto + findConnectedGroupsWithBounds).
+ *
+ * At scale = 1 (the default) the groups are EXACTLY the same as
+ * toBinaryArray + findConnectedGroups, i.e. the same as the Java backend.
+ *
+ * `scale` in (0, 1) analyses a smaller nearest-neighbour copy (e.g. 0.5 = half
+ * width and half height, about 4x less work) and scales centroids, sizes and
+ * bounds back up to full-size coordinates. Those results are APPROXIMATE:
+ * centroids are accurate to about 1 / scale pixels and very thin parts of an
+ * object can be missed. `binary`, `width`, `height` and `matchingPixels`
+ * describe the smaller copy. Invalid scales are treated as 1.
  */
 export function analyzeFrame(
   frame: RgbaImage,
@@ -34,10 +55,26 @@ export function analyzeFrame(
   threshold: number,
   scale = 1,
 ): FrameAnalysis {
-  void scale // TODO(task 4): downscaling
-  const { binary, matchingPixels } = binarizeInto(frame, color, threshold)
-  const groups = findConnectedGroupsFast(binary, frame.width, frame.height)
-  return { groups, binary, width: frame.width, height: frame.height, matchingPixels }
+  const usedScale = normalizeScale(scale)
+  const image = usedScale === 1 ? frame : downscaleNearest(frame, usedScale)
+
+  const { binary, matchingPixels } = binarizeInto(image, color, threshold)
+  let results = findConnectedGroupsWithBounds(binary, image.width, image.height)
+  if (image !== frame) {
+    results = scaleGroupsUp(results, image.width, image.height, frame.width, frame.height)
+  }
+
+  return {
+    groups: results.map((r) => r.group),
+    binary,
+    width: image.width,
+    height: image.height,
+    matchingPixels,
+    bounds: results.map((r) => r.bounds),
+    sourceWidth: frame.width,
+    sourceHeight: frame.height,
+    scale: usedScale,
+  }
 }
 
 function median(values: number[]): number {
