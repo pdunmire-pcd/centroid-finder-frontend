@@ -7,6 +7,12 @@ export {
 } from './binarizer'
 export { findConnectedGroups } from './groupFinder'
 export {
+  findConnectedGroupsFast,
+  findConnectedGroupsWithBounds,
+  type GroupBounds,
+  type GroupWithBounds,
+} from './fastGroupFinder'
+export {
   compareGroups,
   toCsvRow,
   type Coordinate,
