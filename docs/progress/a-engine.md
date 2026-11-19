@@ -87,3 +87,33 @@ Full suite: 70 passed.
 **Decision.** `binary`, `width`, `height` and `matchingPixels` describe the small
 copy (so `binary.length === width * height` always holds), while `groups` and
 `bounds` are always in full-size coordinates, given by `sourceWidth/Height`.
+
+## Task 5: Web Worker and `useFrameAnalysis` hook — done
+
+**What I built.** `src/workers/centroidWorker.ts` is a module Web Worker that
+receives `{ id, frame, color, threshold, scale }`, runs `analyzeFrame` and sends
+the `FrameAnalysis` back, *transferring* the `binary` buffer instead of copying
+it. `LatestFrameScheduler` makes sure only one frame is analysed at a time and
+that, while busy, only the newest frame waits (older waiting frames are skipped
+and their ImageBitmaps closed); it also counts analysed frames per second.
+`useFrameAnalysis()` wraps all of this for React and falls back to the main
+thread when `Worker` does not exist (Node tests).
+
+**Files.** `src/workers/analysisRequest.ts` (message types, `answerRequest`,
+ImageBitmap to pixels), `src/workers/centroidWorker.ts`,
+`src/workers/frameScheduler.ts` (`LatestFrameScheduler`, `FpsCounter`),
+`src/workers/runners.ts` (worker / main-thread runners),
+`src/hooks/useFrameAnalysis.ts`, `tests/engine/worker.test.ts` (all new).
+
+**Tests.** 10 new tests: the worker's message handler (result, error, transfer
+list), main-thread fallback in Node, the fps counter with a fake clock, and the
+scheduler step by step with a hand-controlled runner (stale frames skipped,
+increasing ids, errors reported, results after `stop()` ignored). Full suite:
+80 passed. I also checked that Vite bundles the worker as its own file
+(`centroidWorker-*.js`, 3.5 kB).
+
+**Surprising / limits.** The project's tsconfig only has DOM types, where `self`
+is a `Window`; its `onmessage`/`postMessage(msg, { transfer })` shape is the same
+as a worker's, so no extra lib is needed. There is no React testing library in
+the project, so the hook itself is a thin wrapper and the logic is tested
+through `LatestFrameScheduler`.
