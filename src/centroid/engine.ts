@@ -83,6 +83,24 @@ function median(values: number[]): number {
   return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2)
 }
 
+
+/**
+ * Same rule as the JAR's TopEdgeFilteringGroupFinder: drop every group whose
+ * centroid is in the top `topMargin` rows (centroid.y < topMargin), keeping
+ * the biggest-first order. The salamander videos have a dark strip along the
+ * top that is almost the animal's color, and this stops us tracking it.
+ * `bounds` is filtered the same way so it stays in step with `groups`.
+ */
+export function ignoreTopMargin(analysis: FrameAnalysis, topMargin: number): FrameAnalysis {
+  if (topMargin <= 0) return analysis
+  const keep = analysis.groups.map((group) => group.centroid.y >= topMargin)
+  return {
+    ...analysis,
+    groups: analysis.groups.filter((_, i) => keep[i]),
+    bounds: analysis.bounds?.filter((_, i) => keep[i]),
+  }
+}
+
 /** Median color of the size x size square centred on (x, y), clipped to the frame. */
 export function sampleRegion(frame: RgbaImage, x: number, y: number, size: number): RgbTriple {
   const half = Math.floor(size / 2)

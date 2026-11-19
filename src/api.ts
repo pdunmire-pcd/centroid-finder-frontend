@@ -1,7 +1,7 @@
 // One function per backend endpoint. Components call these instead of fetch() directly,
 // so the URLs live in one place and we can swap in mock data with one switch.
 
-import { mockThumbnailUrl, mockVideoUrl } from './mock/videos'
+import { mockMediaFor } from './mock/videos'
 import type { JobRecord, TrackPoint, VideoInfo } from './types'
 import { parseTrackCsv } from './centroid/engine'
 import {
@@ -113,7 +113,7 @@ export async function getVideos(): Promise<string[]> {
 
 // GET /thumbnail/:filename
 export function getThumbnailUrl(filename: string): string {
-  if (USE_MOCK) return mockThumbnailUrl
+  if (USE_MOCK) return mockMediaFor(filename).thumbnail
   return `/thumbnail/${encodeURIComponent(filename)}`
 }
 
@@ -159,13 +159,13 @@ export async function getVideoDetails(): Promise<VideoInfo[]> {
 
 // GET /videos/:filename -> the video file itself (Range requests work)
 export function getVideoUrl(filename: string): string {
-  if (USE_MOCK) return mockVideoUrl
+  if (USE_MOCK) return mockMediaFor(filename).video
   return `/videos/${encodeURIComponent(filename)}`
 }
 
 // GET /frame/:filename?t=<seconds> -> PNG of the frame at that time (exact colors)
 export function getFrameUrl(filename: string, seconds: number): string {
-  if (USE_MOCK) return mockThumbnailUrl
+  if (USE_MOCK) return mockMediaFor(filename).thumbnail
   return `/frame/${encodeURIComponent(filename)}?t=${seconds}`
 }
 

@@ -6,7 +6,7 @@
 import type { ProcessingStatus, ProcessResponse } from '../api'
 import type { JobRecord, VideoInfo } from '../types'
 import { MOCK_CHECKS_BEFORE_DONE, MOCK_RESULT_URL, initialMockJobs } from './jobs'
-import { mockVideoList, mockVideoProbe } from './videos'
+import { mockMediaFor, mockVideoList } from './videos'
 
 let videos: string[] = []
 let jobs: JobRecord[] = [] // newest first, like GET /api/jobs
@@ -34,14 +34,14 @@ export function mockListVideos(): string[] {
 }
 
 export function mockVideoDetails(): VideoInfo[] {
-  return videos.map((filename) => ({ filename, status: statusOf(filename), ...mockVideoProbe }))
+  return videos.map((filename) => ({ filename, status: statusOf(filename), ...mockMediaFor(filename).probe }))
 }
 
 export function mockAddVideo(filename: string): VideoInfo {
   if (videos.includes(filename)) throw new Error('A video with that name already exists')
   if (!/\.(mp4|mov)$/i.test(filename)) throw new Error('Only .mp4 and .mov videos can be uploaded')
   videos.push(filename)
-  return { filename, status: 'not-processed', ...mockVideoProbe }
+  return { filename, status: 'not-processed', ...mockMediaFor(filename).probe }
 }
 
 export function mockListJobs(): JobRecord[] {
@@ -78,7 +78,7 @@ export function mockCheckStatus(jobId: string): ProcessingStatus {
     if (checks > MOCK_CHECKS_BEFORE_DONE) {
       job.status = 'done'
       job.finishedAt = new Date().toISOString()
-      job.resultUrl = MOCK_RESULT_URL
+      job.resultUrl = mockMediaFor(job.filename).result
     }
   }
 

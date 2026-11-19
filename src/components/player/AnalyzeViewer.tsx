@@ -21,7 +21,35 @@ export type AnalyzeViewerProps = {
   targetColor: string
   /** 0-442 */
   threshold: number
+  /**
+   * Optional: gets the frame on screen and its analysis, for the side panels.
+   * Called right away when paused or after seeking, and at most twice a
+   * second while playing, so the panels don't slow the video down.
+   */
+  onSnapshot?: (snapshot: FrameSnapshot) => void
 }
+
+/** One analysed frame, shared with the color tools and warnings panels. */
+export type FrameSnapshot = {
+  /** the frame's pixels (downscaled, see `scale`) */
+  image: ImageData
+  /** time of the frame in seconds */
+  time: number
+  /** analysis of `image`, in the same downscaled pixels */
+  analysis: FrameAnalysis
+  /** image size / video size, e.g. 0.5 */
+  scale: number
+}
+
+/** How often (ms) the side panels get a new frame while the video plays. */
+const SNAPSHOT_INTERVAL_MS = 500
+
+/**
+ * Our JAR (VideoSummaryApp.TOP_MARGIN) ignores groups whose centroid is in
+ * the top 30 rows, because of the dark strip along the top of the salamander
+ * videos. We do the same, so the live preview tracks what the CSV tracks.
+ */
+export const TOP_MARGIN = 30
 
 /**
  * The live centroid finder: plays a video, analyses each frame it can, and
@@ -31,7 +59,7 @@ export type AnalyzeViewerProps = {
  *   <video> -> useVideoFrames (pixels) -> useCentroidFrame (groups + drawing)
  *           -> recordPoint (trajectory) -> overlays
  */
-export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProps) {
+export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: AnalyzeViewerProps) {
   const [video, setVideo] = useState<HTMLVideoElement | null>(null)
   // Centroids recorded while playing, in video pixels, sorted by time.
   const [points, setPoints] = useState<TrackPoint[]>([])
@@ -45,15 +73,27 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
 
   // Called after each frame is analysed. We only record while playing, and
   // only when the analysis is for the frame we know the time of.
+  const lastSnapshot = useRef(0)
   const recordPoint = (analysis: FrameAnalysis, image: ImageData) => {
     analysedCount.current += 1 // for the "analysing N of M fps" readout
+
+    // Share the frame with the side panels (throttled while playing).
+    const now = performance.now()
+    const playing = video !== null && !video.paused
+    if (onSnapshot && frame && frame.image === image && (!playing || now - lastSnapshot.current > SNAPSHOT_INTERVAL_MS)) {
+      lastSnapshot.current = now
+      onSnapshot({ image, time: frame.time, analysis, scale: frame.scale })
+    }
+
     if (!video || video.paused || !frame || frame.image !== image) return
     const centroid = analysis.groups[0]?.centroid ?? null
     const point = toTrackPoint(centroid, frame.time, frame.scale)
     setPoints((old) => addTrackPoint(old, point))
   }
 
-  const { canvasRef, largest } = useCentroidFrame(frame?.image ?? null, targetColor, threshold, recordPoint)
+  // The top margin is in video pixels, so convert it to the downscaled frame's pixels.
+  const topMargin = frame ? TOP_MARGIN * frame.scale : 0
+  const { canvasRef, largest } = useCentroidFrame(frame?.image ?? null, targetColor, threshold, recordPoint, topMargin)
 
   // The current centroid in full video pixels, for the crosshair and the text.
   const current = frame && largest ? toTrackPoint(largest.centroid, frame.time, frame.scale) : null

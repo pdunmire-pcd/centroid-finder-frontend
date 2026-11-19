@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { parseHexColor, type Group } from '../centroid'
-import { analyzeFrame, type FrameAnalysis } from '../centroid/engine'
+import { analyzeFrame, ignoreTopMargin, type FrameAnalysis } from '../centroid/engine'
 import { binaryToRgba, drawCentroidDot } from '../components/player/drawing'
 
 /** What the hook gives back to the component. */
@@ -21,12 +21,14 @@ export type CentroidFrameResult = {
  * @param targetColor hex color, e.g. "#ff0000"
  * @param threshold color distance, 0-442
  * @param onAnalysed optional: called after each frame is analysed
+ * @param topMargin optional: ignore groups whose centroid is in this many top rows (like the JAR)
  */
 export function useCentroidFrame(
   image: ImageData | null,
   targetColor: string,
   threshold: number,
   onAnalysed?: (analysis: FrameAnalysis, image: ImageData) => void,
+  topMargin = 0,
 ): CentroidFrameResult {
   // We keep the canvas in state (not a ref) so that when a new canvas appears,
   // for example after switching view mode, the effect below draws on it again.
@@ -53,8 +55,9 @@ export function useCentroidFrame(
     }
 
     const handle = requestAnimationFrame(() => {
-      // TODO(merge): switch to useFrameAnalysis from workstream A
-      const result = analyzeFrame(image, color, threshold)
+      // analyzeFrame uses workstream A's fast typed-array path (about 15 ms
+      // for a full 1080p frame, and the video frames here are only 640 px wide).
+      const result = ignoreTopMargin(analyzeFrame(image, color, threshold), topMargin)
 
       if (canvas) drawAnalysis(canvas, result)
       setAnalysis(result)
@@ -62,7 +65,7 @@ export function useCentroidFrame(
     })
 
     return () => cancelAnimationFrame(handle)
-  }, [image, targetColor, threshold, canvas])
+  }, [image, targetColor, threshold, canvas, topMargin])
 
   return {
     canvasRef: setCanvas,

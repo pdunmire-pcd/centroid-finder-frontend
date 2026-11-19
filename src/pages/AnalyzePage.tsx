@@ -1,9 +1,26 @@
-import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Link, Paper, Stack, Tooltip, Typography } from '@mui/material'
-import { Link as RouterLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getProcessingStatus, getVideoUrl, processVideo } from '../api'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Link,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material'
+import { Link as RouterLink, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { getJobs, getProcessingStatus, getVideoUrl, processVideo, uploadVideo } from '../api'
+import { checkFrameQuality } from '../centroid/engine'
+import { ColorToolsPanel } from '../components/color/ColorToolsPanel'
+import { DistanceHistogram } from '../components/color/DistanceHistogram'
+import { DistanceMap } from '../components/color/DistanceMap'
 import { ProcessingControls } from '../components/ProcessingControls'
-import { AnalyzeViewer } from '../components/player/AnalyzeViewer'
+import { AnalyzeViewer, type FrameSnapshot } from '../components/player/AnalyzeViewer'
+import { LiveStatsPanel } from '../components/quality/LiveStatsPanel'
+import { WarningsPanel } from '../components/quality/WarningsPanel'
 import { LocalVideoPicker, VideoDropZone } from '../components/player/LocalVideoPicker'
 import { localFileError, localFileWarning } from '../components/player/localVideo'
 import type { VideoSource } from '../types'
@@ -12,6 +29,23 @@ import type { VideoSource } from '../types'
 //   /analyze/:filename  a video on the server (the name is URL-encoded)
 //   /analyze/local      a video from the user's computer, passed as
 //                       navigate('/analyze/local', { state: { file } })
+// Both accept ?color=<hex without #>&threshold=<0-442>, which is how
+// "Run again with new settings" on the Job results page opens this page.
+
+const DEFAULT_COLOR = '#ff0000'
+const DEFAULT_THRESHOLD = 120
+
+/** Reads ?color=420500&threshold=60, ignoring values that aren't valid. */
+function settingsFromUrl(params: URLSearchParams): { color: string | null; threshold: number | null } {
+  const rawColor = (params.get('color') ?? '').replace(/^#/, '')
+  const color = /^[0-9a-fA-F]{6}$/.test(rawColor) ? `#${rawColor.toLowerCase()}` : null
+  const rawThreshold = Number(params.get('threshold'))
+  const threshold =
+    params.has('threshold') && Number.isInteger(rawThreshold) && rawThreshold >= 0 && rawThreshold <= 442
+      ? rawThreshold
+      : null
+  return { color, threshold }
+}
 
 /** The File in the router's history state, if there is one. */
 function fileFromState(state: unknown): File | null {
@@ -93,8 +127,43 @@ function OpenLocalVideoPanel({ onFile }: { onFile: (file: File) => void }) {
 
 /** Player, live analysis and processing for one video. */
 function AnalyzeSession({ source }: { source: VideoSource }) {
-  const [threshold, setThreshold] = useState(120)
-  const [targetColor, setTargetColor] = useState('#ff0000')
+  const [searchParams] = useSearchParams()
+  const fromUrl = settingsFromUrl(searchParams)
+  const [threshold, setThresholdState] = useState(fromUrl.threshold ?? DEFAULT_THRESHOLD)
+  const [targetColor, setTargetColorState] = useState(fromUrl.color ?? DEFAULT_COLOR)
+  // The latest analysed frame, for the color tools and frame check panels.
+  const [snapshot, setSnapshot] = useState<FrameSnapshot | null>(null)
+
+  // Once the user changes a setting, we never overwrite it with saved ones.
+  const touched = useRef(fromUrl.color !== null || fromUrl.threshold !== null)
+  const setThreshold = (value: number) => {
+    touched.current = true
+    setThresholdState(value)
+  }
+  const setTargetColor = (value: string) => {
+    touched.current = true
+    setTargetColorState(value)
+  }
+
+  // No settings in the URL? Start from this video's most recent finished run.
+  useEffect(() => {
+    if (source.kind !== 'server') return
+    let cancelled = false
+    getJobs()
+      .then((jobs) => {
+        // getJobs is newest first, so find() gives the latest run of this video
+        const last = jobs.find((job) => job.filename === source.filename && job.status === 'done')
+        if (cancelled || !last || touched.current) return
+        setTargetColorState(`#${last.targetColor.toLowerCase()}`)
+        setThresholdState(last.threshold)
+      })
+      .catch(() => {
+        // No job history (e.g. an older server): keep the defaults.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [source])
   const [isProcessing, setIsProcessing] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState('')
@@ -107,14 +176,28 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
   const sizeWarning = source.kind === 'local' ? localFileWarning(source.file) : null
 
   const startProcessing = async () => {
-    if (source.kind !== 'server') return
     setError(null)
     setCsvUrl(null)
+    setJobId(null)
     setStatusMessage('')
     setIsProcessing(true)
 
     try {
-      const result = await processVideo(source.filename, targetColor, threshold)
+      // A video from this computer has to be on the server before the JAR can
+      // process it, so upload it first (with a progress message).
+      let serverFilename: string
+      if (source.kind === 'local') {
+        setStatusMessage('Uploading video… 0%')
+        const uploaded = await uploadVideo(source.file, (fraction) =>
+          setStatusMessage(`Uploading video… ${Math.round(fraction * 100)}%`),
+        )
+        serverFilename = uploaded.filename
+      } else {
+        serverFilename = source.filename
+      }
+
+      setStatusMessage('Processing video…')
+      const result = await processVideo(serverFilename, targetColor, threshold)
       setJobId(result.jobId)
     } catch (caughtError) {
       setIsProcessing(false)
@@ -152,8 +235,7 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
 
   const controls = (
     <ProcessingControls
-      // An empty filename disables the Process button (local videos can't be processed yet).
-      filename={isLocal ? '' : title}
+      filename={title}
       threshold={threshold}
       targetColor={targetColor}
       onThresholdChange={setThreshold}
@@ -174,24 +256,17 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
         </Alert>
       )}
 
-      <AnalyzeViewer src={src} targetColor={targetColor} threshold={threshold} />
+      <AnalyzeViewer src={src} targetColor={targetColor} threshold={threshold} onSnapshot={setSnapshot} />
 
       <Box sx={{ mt: 3, display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
         <Box>
-          {isLocal ? (
-            <>
-              <Alert severity="info" sx={{ mb: 2, maxWidth: 640 }}>
-                This video is on your computer. To run the full processing and get a CSV, the video
-                has to be on the server first (uploading is coming soon). The live preview above works
-                without it.
-              </Alert>
-              <Tooltip title="Local videos can't be processed on the server yet: upload the video first." placement="top">
-                <Box data-testid="local-process-disabled">{controls}</Box>
-              </Tooltip>
-            </>
-          ) : (
-            controls
+          {isLocal && (
+            <Alert severity="info" sx={{ mb: 2, maxWidth: 640 }} data-testid="local-upload-note">
+              This video is on your computer. Processing uploads it to the server first, then the JAR
+              tracks every frame. The live preview above works without uploading.
+            </Alert>
           )}
+          {controls}
 
           {statusMessage && (
             <Alert severity="info" sx={{ mt: 2, maxWidth: 640, width: '100%' }}>
@@ -204,7 +279,17 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
             </Alert>
           )}
           {csvUrl && (
-            <Alert severity="success" sx={{ mt: 2, maxWidth: 640, width: '100%' }}>
+            <Alert
+              severity="success"
+              sx={{ mt: 2, maxWidth: 640, width: '100%' }}
+              action={
+                jobId && (
+                  <Button component={RouterLink} to={`/jobs/${encodeURIComponent(jobId)}`} color="inherit" size="small">
+                    View results
+                  </Button>
+                )
+              }
+            >
               Processing complete.{' '}
               <Link href={csvUrl} target="_blank" rel="noreferrer">
                 Download CSV
@@ -214,7 +299,44 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
         </Box>
 
         <Stack spacing={2} data-testid="analysis-side-panel">
-          {/* Workstream C: ColorToolsPanel, WarningsPanel, LiveStatsPanel go here */}
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" component="h2" gutterBottom>
+              Frame check
+            </Typography>
+            <LiveStatsPanel analysis={snapshot?.analysis ?? null} />
+            <Box sx={{ mt: 2 }}>
+              <WarningsPanel warnings={snapshot ? checkFrameQuality(snapshot.analysis) : null} />
+            </Box>
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Pause the video to sample the animal on the frame shown below.
+            </Typography>
+            <ColorToolsPanel
+              frame={snapshot?.image ?? null}
+              currentTime={snapshot?.time ?? 0}
+              filename={title}
+              targetColor={targetColor}
+              threshold={threshold}
+              onTargetColorChange={setTargetColor}
+              onThresholdChange={setThreshold}
+            />
+          </Paper>
+
+          <Accordion variant="outlined" disableGutters>
+            <AccordionSummary expandIcon={<span aria-hidden>▾</span>}>
+              <Typography variant="h6" component="h2">
+                How well does this color separate the animal?
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <DistanceHistogram frame={snapshot?.image ?? null} targetColor={targetColor} threshold={threshold} />
+                <DistanceMap frame={snapshot?.image ?? null} targetColor={targetColor} threshold={threshold} />
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </Stack>
       </Box>
     </>

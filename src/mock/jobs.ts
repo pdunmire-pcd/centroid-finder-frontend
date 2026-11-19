@@ -19,6 +19,16 @@ export const MOCK_RESULT_URL = '/mock/result.csv'
 // GET /api/jobs at the start of a mock session, newest first: one of each status.
 export const initialMockJobs: JobRecord[] = [
   {
+    jobId: 'mock-job-125',
+    filename: 'ensantina.mp4',
+    targetColor: '420500',
+    threshold: 60,
+    status: 'done',
+    startedAt: '2026-11-19T19:05:00.000Z',
+    finishedAt: '2026-11-19T19:05:06.000Z',
+    resultUrl: '/mock/salamander-result.csv',
+  },
+  {
     jobId: 'mock-job-124',
     filename: 'salamander1.mp4',
     targetColor: '660005',

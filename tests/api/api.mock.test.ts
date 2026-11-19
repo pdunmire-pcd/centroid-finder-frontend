@@ -37,23 +37,28 @@ describe('api.ts in mock mode', () => {
 
   it('starts with a processing, done and error job, newest first', async () => {
     const jobs = await run(api.getJobs())
-    expect(jobs.map((job) => job.status)).toEqual(['processing', 'done', 'error', 'done'])
+    // the newest job is the real salamander run
+    expect(jobs.map((job) => job.status)).toEqual(['done', 'processing', 'done', 'error', 'done'])
     const times = jobs.map((job) => job.startedAt)
     expect([...times].sort().reverse()).toEqual(times)
-    expect(jobs[1]?.resultUrl).toBe('/mock/result.csv')
-    expect(jobs[2]?.error).toBeTruthy()
+    expect(jobs[0]).toMatchObject({ filename: 'ensantina.mp4', resultUrl: '/mock/salamander-result.csv' })
+    expect(jobs[2]?.resultUrl).toBe('/mock/result.csv')
+    expect(jobs[3]?.error).toBeTruthy()
   })
 
   it('gives each video the status of its newest job', async () => {
     const videos = await run(api.getVideoDetails())
     const statuses = Object.fromEntries(videos.map((video) => [video.filename, video.status]))
     expect(statuses).toEqual({
+      'ensantina.mp4': 'tracked',
       'bright_balloon_sample_video.mp4': 'tracked',
       'salamander1.mp4': 'processing',
       'salamander2.mov': 'error',
       'forest_intro.mp4': 'not-processed',
     })
-    expect(videos[0]).toMatchObject({ width: 1920, height: 1080, durationSeconds: 11 })
+    // ensantina.mp4 is the real salamander clip, the others use the balloon video
+    expect(videos[0]).toMatchObject({ width: 816, height: 720, durationSeconds: 30 })
+    expect(videos[1]).toMatchObject({ width: 1920, height: 1080, durationSeconds: 11 })
   })
 
   it('a new job is processing, then done after a few status checks, and the job list follows', async () => {
