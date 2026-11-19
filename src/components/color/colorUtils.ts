@@ -1,8 +1,13 @@
 // Small pure helpers for the color tools. No React and no DOM here, so every
 // function can be unit tested in Node (see tests/color/colorUtils.test.ts).
 
+import type { RgbaImage } from '../../centroid/binarizer'
+import { euclideanColorDistance } from '../../centroid/colorDistance'
 import { rgbToHex } from '../../centroid/engine'
 import type { RgbTriple } from '../../types'
+
+/** The largest possible color distance: black to white, sqrt(3 * 255^2) ≈ 441.7. */
+export const MAX_DISTANCE = 442
 
 /** The sample square sizes the user can pick (side length in pixels). */
 export const SAMPLE_SIZES = [1, 3, 5, 9] as const
@@ -63,4 +68,73 @@ export function clientToPixel(
     x: Math.min(frameWidth - 1, Math.max(0, x)),
     y: Math.min(frameHeight - 1, Math.max(0, y)),
   }
+}
+
+// ---- Histogram ----
+
+/**
+ * Turns histogram counts into bar heights from 0 to 1 (1 = the tallest bar).
+ *
+ * With logScale, heights use log(1 + count), so a bin with 10 pixels is still
+ * visible next to a bin with 1,000,000 pixels.
+ */
+export function histogramHeights(counts: number[], logScale: boolean): number[] {
+  const scaled = counts.map((count) => (logScale ? Math.log10(1 + count) : count))
+  const tallest = Math.max(0, ...scaled)
+  if (tallest === 0) return scaled.map(() => 0)
+  return scaled.map((value) => value / tallest)
+}
+
+/** Percentage (0-100) of all counted pixels that fall in bins below the threshold. */
+export function percentBelowThreshold(counts: number[], threshold: number): number {
+  const binWidth = MAX_DISTANCE / counts.length
+  let total = 0
+  let below = 0
+  counts.forEach((count, i) => {
+    total += count
+    // a bin counts as "below" when its whole range is under the threshold
+    if ((i + 1) * binWidth <= threshold) below += count
+  })
+  return total === 0 ? 0 : (below / total) * 100
+}
+
+// ---- Distance map ----
+
+/**
+ * A "heat" color for a value from 0 to 1: black -> red -> yellow -> white.
+ * 1 means "very close to the target color".
+ */
+export function heatColor(value: number): RgbTriple {
+  const v = Math.min(1, Math.max(0, value))
+  const red = Math.round(255 * Math.min(1, v * 3))
+  const green = Math.round(255 * Math.min(1, Math.max(0, v * 3 - 1)))
+  const blue = Math.round(255 * Math.min(1, Math.max(0, v * 3 - 2)))
+  return [red, green, blue]
+}
+
+/**
+ * Builds RGBA pixels that show how close every pixel is to the target color.
+ *
+ * Distance 0 is white, distance = threshold is in the middle of the scale
+ * (red-orange), and anything at twice the threshold or further is black. So
+ * everything that would be tracked is in the bright half of the scale.
+ */
+export function distanceMapPixels(frame: RgbaImage, targetColor: number, threshold: number): Uint8ClampedArray {
+  const pixels = new Uint8ClampedArray(frame.width * frame.height * 4)
+  const range = Math.max(1, threshold * 2) // avoid dividing by 0 when threshold is 0
+
+  // 442 possible whole distances -> precompute their colors once (faster)
+  const palette: RgbTriple[] = []
+  for (let d = 0; d <= MAX_DISTANCE; d++) palette.push(heatColor(1 - d / range))
+
+  for (let i = 0; i < frame.data.length; i += 4) {
+    const pixel = (frame.data[i] << 16) | (frame.data[i + 1] << 8) | frame.data[i + 2]
+    const distance = euclideanColorDistance(pixel, targetColor)
+    const [r, g, b] = palette[Math.round(distance)]
+    pixels[i] = r
+    pixels[i + 1] = g
+    pixels[i + 2] = b
+    pixels[i + 3] = 255
+  }
+  return pixels
 }

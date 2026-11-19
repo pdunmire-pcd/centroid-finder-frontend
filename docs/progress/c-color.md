@@ -59,3 +59,26 @@ Apply sends 24, three right-arrow presses on the margin slider give 27, the
 
 Surprising: MUI 9 puts `aria-labelledby` on the slider's hidden `<input>`, not
 on the outer element, so tests select `input[aria-labelledby=...]`.
+
+## Task 4: DistanceHistogram and DistanceMap — done
+
+`DistanceHistogram` is a plain SVG bar chart of the engine's
+`distanceHistogram` (100 bars over distances 0–442), with an orange vertical
+line at the threshold, bars left of the line in the theme's green, a log-scale
+switch (on by default so the small animal bump is visible next to the huge
+background bump), and a caption on how to read it. `DistanceMap` is a canvas
+that paints each pixel by its distance to the target: white = same color,
+orange = exactly at the threshold, black = twice the threshold or more.
+
+Files: `src/components/color/DistanceHistogram.tsx`,
+`src/components/color/DistanceMap.tsx`, `src/components/color/colorUtils.ts`
+(`histogramHeights`, `percentBelowThreshold`, `heatColor`, `distanceMapPixels`),
+`tests/color/histogramAndMap.test.ts`, `cypress/component/color/DistanceHistogram.cy.tsx`.
+
+Tested: Vitest for all four helpers. Cypress: threshold 221 puts the line at
+x = 200 of 400, the line moves on rerender, a 10×10 frame with a 2×2 animal
+reports 4.0% left of the line, 50 bins draw 50 bars, the log switch changes bar
+heights, and the distance map paints the animal white and the background black.
+
+Surprising: nothing major. The histogram is memoised on frame + color only,
+so dragging the threshold slider just moves the line without recounting.
