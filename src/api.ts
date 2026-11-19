@@ -9,9 +9,9 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // ---- Response types (same shapes our Express server sends) ----
 
-export type StartJobResponse = { jobId: string }
+export type ProcessResponse = { jobId: string }
 
-export type JobStatusResponse =
+export type ProcessingStatus =
   | { status: 'processing' }
   | { status: 'done'; result: string } // result is a URL like /results/<jobId>.csv
   | { status: 'error'; error: string }
@@ -60,11 +60,11 @@ export function getThumbnailUrl(filename: string): string {
 
 // POST /process/:filename?targetColor=<hex>&threshold=<int>
 // targetColor is hex WITHOUT the "#", like "FFA200" (same as the Java program expects)
-export async function startProcessing(
+export async function processVideo(
   filename: string,
   targetColor: string,
   threshold: number,
-): Promise<StartJobResponse> {
+): Promise<ProcessResponse> {
   const color = targetColor.replace('#', '')
   if (USE_MOCK) {
     await delay(300)
@@ -72,18 +72,18 @@ export async function startProcessing(
     return mockStartJob
   }
   const params = new URLSearchParams({ targetColor: color, threshold: String(threshold) })
-  return fetchJson<StartJobResponse>(`/process/${encodeURIComponent(filename)}?${params}`, {
+  return fetchJson<ProcessResponse>(`/process/${encodeURIComponent(filename)}?${params}`, {
     method: 'POST',
   })
 }
 
 // GET /process/:jobId/status
 let mockStatusChecks = 0
-export async function getJobStatus(jobId: string): Promise<JobStatusResponse> {
+export async function getProcessingStatus(jobId: string): Promise<ProcessingStatus> {
   if (USE_MOCK) {
     await delay(200)
     mockStatusChecks++
     return mockStatusChecks > MOCK_CHECKS_BEFORE_DONE ? mockDone : mockProcessing
   }
-  return fetchJson<JobStatusResponse>(`/process/${encodeURIComponent(jobId)}/status`)
+  return fetchJson<ProcessingStatus>(`/process/${encodeURIComponent(jobId)}/status`)
 }
