@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   MARKER_CANDIDATES,
+  buildProcessRequest,
   clientToPixel,
   contrastingMarkerColor,
   describeSpread,
@@ -35,6 +36,20 @@ describe('formatRgb / formatSeconds', () => {
   it('formats for display', () => {
     expect(formatRgb([102, 0, 5])).toBe('rgb(102, 0, 5)')
     expect(formatSeconds(1.234)).toBe('1.23 s')
+  })
+})
+
+describe('buildProcessRequest', () => {
+  it('matches the request processVideo sends', () => {
+    expect(buildProcessRequest('salamander1.mp4', '#660005', 67)).toBe(
+      'POST /process/salamander1.mp4?targetColor=660005&threshold=67',
+    )
+  })
+
+  it('URL-encodes the filename', () => {
+    expect(buildProcessRequest('my video.mp4', 'ffa200', 120)).toBe(
+      'POST /process/my%20video.mp4?targetColor=ffa200&threshold=120',
+    )
   })
 })
 

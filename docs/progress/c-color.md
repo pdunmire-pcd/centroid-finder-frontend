@@ -122,3 +122,22 @@ derived from the code (`no-match` and `too-many-matching` = error, the rest =
 warning) in `warningSeverity`. The baseline `checkFrameQuality` only reports
 `no-match` until workstream A's checks land, so the 24-groups example will
 only warn after merging A.
+
+## Task 7: Request preview — done
+
+Built `RequestPreview`, which shows the exact call the Process button will
+send, e.g. `POST /process/salamander1.mp4?targetColor=660005&threshold=67`,
+with a Copy button (uses `navigator.clipboard`, wrapped in try/catch, with an
+`aria-live` "Copied" / "Could not copy" message). The text comes from
+`buildProcessRequest` in `colorUtils.ts`, which builds the URL the same way as
+`processVideo` in `src/api.ts` (`encodeURIComponent` + `URLSearchParams`).
+
+Files: `src/components/color/RequestPreview.tsx`, `src/components/color/colorUtils.ts`,
+`tests/color/colorUtils.test.ts`, `cypress/component/color/RequestPreview.cy.tsx`.
+
+Tested: Vitest for `buildProcessRequest` (plain and with a space in the
+filename); Cypress for the shown text, encoding, copying (clipboard stubbed)
+and the failure message.
+
+Surprising: `cy.stub().resolves()` returns a plain Sinon stub, so `.as()` must
+come before `.resolves()` for TypeScript.

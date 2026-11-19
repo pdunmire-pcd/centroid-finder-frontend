@@ -70,6 +70,21 @@ export function clientToPixel(
   }
 }
 
+// ---- Request preview ----
+
+/**
+ * The exact request the Process button sends, built the same way as
+ * processVideo() in src/api.ts, e.g.
+ * "POST /process/salamander1.mp4?targetColor=660005&threshold=67".
+ */
+export function buildProcessRequest(filename: string, targetColor: string, threshold: number): string {
+  const params = new URLSearchParams({
+    targetColor: targetColor.replace('#', ''),
+    threshold: String(threshold),
+  })
+  return `POST /process/${encodeURIComponent(filename)}?${params}`
+}
+
 // ---- Marker color ----
 
 /** Bright colors that stand out on most videos. */
