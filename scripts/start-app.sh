@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Starts the whole app with one command: the Express server and the frontend.
 #
-#   npm run app          real server + JAR   -> open http://localhost:5173
-#   npm run app:mock     mock data only (no server, no JAR) -> same address
+#   npm run dev (or npm run app)   real server + JAR -> open http://localhost:5173
+#   npm run dev:mock (or app:mock) mock data only, no server or JAR
 #
 # The server runs on port 3001, not 3000, so it can't clash with another
 # program that is already using 3000. Vite forwards /api, /process, /videos ...
