@@ -133,3 +133,30 @@ video format. Try converting it to MP4 (H.264)."). New `LocalVideoPicker`
 - Surprising: creating the URL in an effect (not in `useMemo`) matters in
   React's StrictMode, which runs effects twice in development: the first
   cleanup revokes the URL, and the second run makes a fresh one.
+
+## Task 7: AnalyzePage and routes — done
+
+`AnalyzePage` works out the source from the URL: `/analyze/:filename` is a
+server video (played from `getVideoUrl`), `/analyze/local` takes the File from
+`location.state.file`, and without one it shows an "Open a video from your
+computer" panel. The whole page is a drop zone and has an "Open from this
+computer" button; a picked file is checked, then opened with
+`navigate('/analyze/local', { state: { file } })`. Each video gets its own
+`AnalyzeSession` (keyed by source), which holds the threshold/color,
+`ProcessingControls`, the job polling and the CSV link, and leaves a marked slot
+for workstream C. For local videos Process is disabled, with an info message and
+a tooltip saying why. While playing, a chip shows "analysing N of M fps" when
+frames are being skipped (video frames come from `getVideoPlaybackQuality()`).
+
+- Files: `src/pages/AnalyzePage.tsx` (new, also `PreviewRedirect`),
+  `src/App.tsx` (route lines only), `src/pages/PreviewPage.tsx` (deleted:
+  replaced by the Analyze page), `src/components/player/useFrameRates.ts` (new),
+  `AnalyzeViewer.tsx` (readout), `drawing.ts` (bigger crosshair),
+  `tests/player/frameRates.test.ts`.
+- Tested: 3 Vitest tests for `describeFrameRates`; checked by hand with
+  full-page screenshots (server video side by side; local file in binarized
+  mode); the old `processing.cy.ts` E2E still passes through the redirect.
+- Surprising: `ProcessingControls` disables its button when `filename` is
+  empty, and changing that file belongs to someone else, so for local videos we
+  pass `''`. The side effect is that the card says "Video: No video selected";
+  a small `disabledReason` prop would fix it after the merge.

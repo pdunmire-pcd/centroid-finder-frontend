@@ -1,5 +1,5 @@
-import { Box, Button, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { useState } from 'react'
+import { Box, Button, Chip, Paper, Stack, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
+import { useRef, useState } from 'react'
 import type { FrameAnalysis } from '../../centroid/engine'
 import { useCentroidFrame } from '../../hooks/useCentroidFrame'
 import { useVideoFrames } from '../../hooks/useVideoFrames'
@@ -7,6 +7,7 @@ import type { TrackPoint } from '../../types'
 import { TrajectoryCanvas } from '../shared/TrajectoryCanvas'
 import { CrosshairOverlay } from './CrosshairOverlay'
 import { addTrackPoint, toTrackPoint } from './trackPoints'
+import { describeFrameRates, useFrameRates } from './useFrameRates'
 import { seekTo } from './videoControls'
 import { VideoPlayer } from './VideoPlayer'
 
@@ -38,9 +39,14 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
 
   const frame = useVideoFrames(video)
 
+  // Counts analysed frames; a ref because changing it shouldn't re-render.
+  const analysedCount = useRef(0)
+  const frameRates = describeFrameRates(useFrameRates(video, analysedCount))
+
   // Called after each frame is analysed. We only record while playing, and
   // only when the analysis is for the frame we know the time of.
   const recordPoint = (analysis: FrameAnalysis, image: ImageData) => {
+    analysedCount.current += 1 // for the "analysing N of M fps" readout
     if (!video || video.paused || !frame || frame.image !== image) return
     const centroid = analysis.groups[0]?.centroid ?? null
     const point = toTrackPoint(centroid, frame.time, frame.scale)
@@ -140,6 +146,11 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
               ? `Centroid at (${current.x}, ${current.y}), about ${Math.round(largest.size / (frame.scale * frame.scale))} px`
               : 'No matching pixels in this frame'}
         </Typography>
+        {frameRates && (
+          <Tooltip title="The computer can't analyse every frame, so some are skipped. The trail has fewer points, but the server's CSV will still have every frame.">
+            <Chip size="small" color="warning" variant="outlined" label={frameRates} data-testid="frame-rates" />
+          </Tooltip>
+        )}
         <Typography variant="body2" color="text.secondary" data-testid="trail-info">
           Trail: {points.length} points
         </Typography>
