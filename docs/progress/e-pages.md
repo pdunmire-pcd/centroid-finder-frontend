@@ -39,3 +39,13 @@
 **Tested:** 8 new Vitest tests (ids, hex, relative time, duration, filtering/sorting); 3 Cypress tests (list, filters, open results) pass in mock mode. Screenshot: `screenshots/4-jobs-light.png`.
 
 **Surprising:** in MUI `sx`, `width: 1` means 100%, not 1 px, so the screen-reader-only style needs the string `'1px'`. On a phone the table scrolls sideways inside its card (min width 760 px) instead of squashing the columns.
+
+## Task 5: Job results page — done
+
+**What:** `/jobs/:jobId` has breadcrumbs (Jobs / id), a header with the video name, status chip and run settings (color swatch, threshold, start time, how long it took, job id), and a Started → Processing → Results ready stepper (a failed job shows a red "Failed" step with the server's message). While the job is processing the page fetches it again every 2 s. When it is done the CSV is loaded with `getTrack`, and the video plays with `TrajectoryCanvas` on top, sized to the video's natural `videoWidth × videoHeight`. Under the video a monospace readout shows time, frame number and x, y (or "no match"). "Download CSV" and "Run again with new settings" (`/analyze/:filename?color=<hex>&threshold=<n>`) buttons sit in the header.
+
+**Files:** `src/pages/JobResultsPage.tsx`, `src/components/results/` (`ResultsPlayer.tsx`, `JobProgressSteps.tsx`, `useVideoTime.ts`, `trackData.ts`, `format.ts` → `runAgainUrl`), `src/App.tsx` (route), `tests/results/trackData.test.ts`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 4 new Vitest tests for `pointIndexAt` (including a 12,000-row comparison with a linear search); 3 new Cypress tests (finished job, failed job, unknown job). The Cypress tests replace the 5-row mock CSV with a generated 275-row one via `cy.intercept`, because the mock file is tiny. Screenshot: `screenshots/5-results-player.png`.
+
+**Surprising:** `timeupdate` only fires ~4 times a second, so `useVideoTime` also reads the time in a `requestAnimationFrame` loop while the video plays. The new hooks lint rule (`react-hooks/immutability`) refuses `video.currentTime = t` on an element kept in state, so seeking goes through a ref to the same element.

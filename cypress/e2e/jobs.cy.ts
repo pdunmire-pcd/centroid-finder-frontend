@@ -41,3 +41,51 @@ describe('jobs page', () => {
     cy.location('pathname').should('eq', '/jobs/mock-job-123')
   })
 })
+
+// A realistic CSV for the 11-second, 25 fps mock video: the object moves in a
+// loop, is lost between 4.0 s and 4.6 s, and jumps once at 7.0 s.
+function buildMockCsv(): string {
+  const rows: string[] = []
+  for (let frame = 0; frame < 275; frame++) {
+    const seconds = frame * 0.04
+    let x = Math.round(960 + 500 * Math.cos(seconds / 2))
+    let y = Math.round(540 + 300 * Math.sin(seconds / 2))
+    if (seconds >= 4 && seconds < 4.6) {
+      x = -1
+      y = -1
+    }
+    if (frame === 175) x += 400 // one suspect jump
+    rows.push(`${seconds.toFixed(3)},${x},${y}`)
+  }
+  return rows.join('\n')
+}
+
+describe('job results page', () => {
+  beforeEach(() => {
+    cy.intercept('GET', '/mock/result.csv', { body: buildMockCsv(), headers: { 'content-type': 'text/csv' } })
+  })
+
+  it('shows the settings, steps, video and actions for a finished job', () => {
+    cy.visit('/jobs/mock-job-123')
+    cy.contains('h1', 'bright_balloon_sample_video.mp4')
+    cy.contains('#ff0000')
+    cy.get('[data-cy="job-steps"]').should('contain', 'Results ready')
+    cy.get('[data-cy="results-video"]').should('be.visible')
+    cy.get('[data-testid="trajectory-canvas"]').should('have.prop', 'width', 1920)
+    cy.get('[data-cy="download-csv"]').should('have.attr', 'href', '/mock/result.csv')
+    cy.get('[data-cy="run-again"]')
+      .should('have.attr', 'href', '/analyze/bright_balloon_sample_video.mp4?color=ff0000&threshold=120')
+    cy.contains('nav[aria-label="Breadcrumb"] a', 'Jobs').should('have.attr', 'href', '/jobs')
+  })
+
+  it('shows the error step for a failed job', () => {
+    cy.visit('/jobs/mock-job-122')
+    cy.get('[data-cy="job-steps"]').should('contain', 'Failed').and('contain', 'Error processing video')
+    cy.get('[data-cy="results-video"]').should('not.exist')
+  })
+
+  it('shows an error for an unknown job', () => {
+    cy.visit('/jobs/does-not-exist')
+    cy.contains('Could not load job does-not-exist')
+  })
+})

@@ -55,3 +55,9 @@ export function filterJobs(jobs: JobRecord[], filter: JobFilter): JobRecord[] {
     .filter((job) => filter === 'all' || job.status === filter)
     .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
 }
+
+/** Link to the Analyze page with this job's settings filled in. */
+export function runAgainUrl(job: JobRecord): string {
+  const params = new URLSearchParams({ color: job.targetColor, threshold: String(job.threshold) })
+  return `/analyze/${encodeURIComponent(job.filename)}?${params}`
+}
