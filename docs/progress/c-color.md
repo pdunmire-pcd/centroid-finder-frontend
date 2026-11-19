@@ -141,3 +141,25 @@ and the failure message.
 
 Surprising: `cy.stub().resolves()` returns a plain Sinon stub, so `.as()` must
 come before `.resolves()` for TypeScript.
+
+## Task 8: Saved color profiles and ColorToolsPanel — done
+
+`useColorProfiles` keeps a list of named `ColorProfile`s in localStorage
+(every read and write wrapped in try/catch; broken data gives an empty list;
+saving an existing name replaces it). `ColorProfiles` is the UI: a name field
+with Save, and a list with Load and Delete. `ColorToolsPanel` puts it all
+together: current-settings legend, sampler, average color, threshold
+suggestion, profiles and request preview. It keeps the samples itself and
+only needs the frame, time, filename, color, threshold and two change callbacks.
+
+Files: `src/hooks/useColorProfiles.ts`, `src/components/color/ColorProfiles.tsx`,
+`src/components/color/ColorToolsPanel.tsx`, `tests/color/useColorProfiles.test.ts`,
+`cypress/component/color/ColorToolsPanel.cy.tsx`.
+
+Tested: Vitest for read/write/upsert with a fake storage (including broken
+JSON and a storage that throws). Cypress: click → Use this color → Apply ends
+in `...targetColor=660005&threshold=16`; saving writes localStorage, and after
+a remount Load restores color and samples, and Delete removes it.
+
+Surprising: the pure storage functions take the storage as a parameter, so
+they can be tested in Node, where `window.localStorage` does not exist.
