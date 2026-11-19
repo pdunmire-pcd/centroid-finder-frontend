@@ -99,3 +99,26 @@ Files: `src/components/color/TrackingColorLegend.tsx`,
 
 Tested: Vitest (cyan for #660005, magenta for green, always a candidate);
 Cypress (shows hex, RGB, threshold and aria-label; parent `sx` positions it).
+
+## Task 6: LiveStatsPanel and WarningsPanel — done
+
+`LiveStatsPanel` takes the `FrameAnalysis` from the engine's `analyzeFrame`
+and shows matching pixels %, number of groups, the largest group's centroid
+and size, and the second-largest / largest size ratio (near 100% means two
+similar blobs, so the tracker could jump). `WarningsPanel` takes the
+`Warning[]` from `checkFrameQuality` and shows each as a colored MUI Alert with
+the message as title and "Fix: …" below. "Looks good" appears only for an
+empty list; `null` (nothing checked yet) shows a waiting message instead.
+
+Files: `src/components/quality/LiveStatsPanel.tsx`,
+`src/components/quality/WarningsPanel.tsx`, `src/components/quality/qualityUtils.ts`,
+`tests/color/quality.test.ts`, `cypress/component/quality/WarningsPanel.cy.tsx`.
+
+Tested: Vitest for `computeLiveStats` and `warningSeverity`; Cypress for
+"Looks good" vs warnings vs waiting, the severity colors, and the stat values.
+
+Surprising: the shared `Warning` type has no severity field, so severity is
+derived from the code (`no-match` and `too-many-matching` = error, the rest =
+warning) in `warningSeverity`. The baseline `checkFrameQuality` only reports
+`no-match` until workstream A's checks land, so the 24-groups example will
+only warn after merging A.
