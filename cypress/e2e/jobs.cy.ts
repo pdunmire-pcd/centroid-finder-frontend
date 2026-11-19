@@ -143,6 +143,18 @@ describe('job results page', () => {
     cy.get('[data-cy="track-row"][data-frame="225"]').should('have.attr', 'aria-current', 'true')
   })
 
+  it('downloads a run record as JSON', () => {
+    cy.visit('/jobs/mock-job-123')
+    cy.get('[data-cy="download-record"]').click()
+    // Cypress saves downloads in cypress/downloads
+    cy.readFile('cypress/downloads/bright_balloon_sample_video-mock-job-123-run.json').then((record) => {
+      expect(record.video.filename).to.eq('bright_balloon_sample_video.mp4')
+      expect(record.settings).to.deep.eq({ targetColor: '#ff0000', threshold: 120, suspectJumpPx: 100 })
+      expect(record.summary.frames).to.eq(275)
+      expect(record.app.version).to.be.a('string')
+    })
+  })
+
   it('shows the error step for a failed job', () => {
     cy.visit('/jobs/mock-job-122')
     cy.get('[data-cy="job-steps"]').should('contain', 'Failed').and('contain', 'Error processing video')

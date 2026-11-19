@@ -17,6 +17,7 @@ import { TrackTable } from '../components/results/TrackTable'
 import { DEFAULT_MAX_JUMP_PX, pointIndexAt } from '../components/results/trackData'
 import { formatDateTime, formatJobDuration, runAgainUrl, shortJobId } from '../components/results/format'
 import { useVideoTime } from '../components/results/useVideoTime'
+import { buildRunRecord, downloadJson, runRecordFileName } from '../components/results/runRecord'
 
 // How often to ask the server about a job that is still processing
 const POLL_MS = 2000
@@ -170,6 +171,26 @@ export default function JobResultsPage() {
             {job.resultUrl && (
               <Button variant="contained" href={job.resultUrl} download data-cy="download-csv">
                 Download CSV
+              </Button>
+            )}
+            {summary && (
+              <Button
+                variant="outlined"
+                data-cy="download-record"
+                onClick={() =>
+                  downloadJson(
+                    runRecordFileName(job),
+                    buildRunRecord({
+                      job,
+                      summary,
+                      suspectFrames: suspectIndexes.length,
+                      suspectJumpPx: maxJump,
+                      exportedAt: new Date(),
+                    }),
+                  )
+                }
+              >
+                Download run record
               </Button>
             )}
             <Button variant="outlined" component={RouterLink} to={runAgainUrl(job)} data-cy="run-again">

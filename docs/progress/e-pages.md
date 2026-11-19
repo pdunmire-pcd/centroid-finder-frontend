@@ -79,3 +79,13 @@
 **Tested:** 3 new Vitest tests (notes, page lookup with and without the filter); 2 new E2E tests (clicking row 21 moves the video to 0.8 s; the flagged filter shows 18 rows, a suspect row seeks, and jump-to-current lands on frame 226). Screenshot: `screenshots/8-results-full-light.png` (the whole page; the top bar appears twice because Cypress stitches the full-page shot and the bar is sticky).
 
 **Surprising:** `225 × 0.04` is `9.000000000000002` in floating point, so at exactly 9 s the video shows frame 224, not 225; the test seeks to 9.01 s. The E2E test also waits for the video's metadata (`readyState ≥ 1`) before seeking, otherwise the seek can get lost while the video is still loading.
+
+## Task 9: Run record export — done
+
+**What:** A "Download run record" button in the results header saves a JSON file (`<video>-<jobId>-run.json`) with the app name and version (from `package.json`), the export time, the job id, status, start/finish times and CSV link, the video filename, the settings (target color, threshold, suspect-jump limit) and the summary stats plus the suspect-frame count. `buildRunRecord` is a pure function that takes the export time as a parameter, so tests always get the same output. `downloadJson` turns the object into a Blob and clicks a temporary link to save it.
+
+**Files:** `src/components/results/runRecord.ts`, `src/pages/JobResultsPage.tsx`, `tests/results/runRecord.test.ts`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 4 new Vitest tests (full record, defaults/nulls, JSON round trip, safe file name); 1 new E2E test clicks the button and reads the downloaded file from `cypress/downloads`.
+
+**Surprising:** `import { version } from '../../../package.json'` works with this TypeScript setup, and Vite bundles only that one field, not the whole `package.json` with its dependency list.
