@@ -55,3 +55,9 @@ Mock mode now has a small in-memory "pretend server" (`src/mock/backend.ts`) tha
 - Files (frontend): `src/api.ts`, `src/mock/jobs.ts`, `src/mock/videos.ts`, new `src/mock/backend.ts`, `public/mock/result.csv`.
 - Tested: the existing Cypress E2E `processing.cy.ts` passes unchanged against `vite --mode mock` (1/1). Unit tests for the mock come in Task 11.
 - Surprise: the sample video is 1920×1080, not 1280×720, so the real JAR run was the easiest way to get a realistic path. Also, Cypress only starts here with `ELECTRON_RUN_AS_NODE` unset (the editor's terminal sets it).
+
+## Task 11: tests for api.ts — done
+Two new Vitest files: `api.fetch.test.ts` replaces `fetch` with a fake and checks every endpoint's URL, method, encoding and error messages; `api.mock.test.ts` turns mock mode on (`vi.stubEnv` + a fresh import) and walks through the mock's behavior: job list, video statuses, a job going processing → done, uploads and 409s, abort. It also checks `public/mock/result.csv` really looks like JAR output. A new Cypress spec `cypress/e2e/api.cy.ts` (mock mode) checks the `/videos` page still renders, the proxy bypass answers page loads with index.html, the mock CSV format, and Range requests on the mock video.
+- Files (frontend): new `tests/api/api.fetch.test.ts`, `tests/api/api.mock.test.ts`, `cypress/e2e/api.cy.ts`.
+- Tested: Vitest 70 passing (34 in `tests/api/`, was 36 total before this workstream); Cypress E2E 5/5 and component 6/6.
+- Surprise: with fake timers a rejected mock promise is reported as "unhandled" before the test awaits it, so the `run()` helper marks it handled first.
