@@ -41,3 +41,26 @@ at 13 thresholds, including fractional ones. Full suite: 51 passed.
 whole-number thresholds; for a value like 164.5 the square is rounded by
 floating point. The limit is therefore nudged up/down using `Math.sqrt` itself,
 so the strict `<` from the Java code is kept exactly for any threshold.
+
+## Task 3: Equivalence tests — done
+
+**What I built.** A test file that runs the fast path (`analyzeFrame`) and the
+Java-matching reference (`toBinaryArray` + `findConnectedGroups`) on the same
+input and checks that the binary image, matching-pixel count and the full group
+list (sizes, centroids, order) are identical. Random inputs come from a small
+seeded random generator, so any failure can be repeated exactly.
+
+**Files.** `tests/engine/equivalence.test.ts` (new), `tests/engine/helpers.ts`
+(new: fixture loading, seeded random, random/solid images).
+
+**Tests.** 11 new tests covering: both fixtures (`squares.jpg` 1280x720 and
+`extractedFrame.png` 1920x1080) with 4 colors x 5 thresholds each, the Java
+`groups.csv` output through `analyzeFrame`, 300 random palette images with random
+fractional thresholds, 300 random binary images of random density, 1x1, all-on,
+all-off, a full 1920x1080 all-on frame (2 million pixel group), single rows and
+columns, zero/negative thresholds and a pixel exactly on the threshold.
+`matchesJava.test.ts` still passes. Full suite: 62 passed.
+
+**Surprising.** Comparing two 2-million-entry arrays with `toEqual` is very slow,
+so the binary images are compared with a plain loop that reports the first
+mismatching pixel.
