@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "dev:mock": "vite --mode mock"
+    "dev:mock": "vite --mode mock",
+    "bench": "vitest bench --run --silent=false"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
