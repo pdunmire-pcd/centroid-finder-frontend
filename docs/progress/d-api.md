@@ -61,3 +61,8 @@ Two new Vitest files: `api.fetch.test.ts` replaces `fetch` with a fake and check
 - Files (frontend): new `tests/api/api.fetch.test.ts`, `tests/api/api.mock.test.ts`, `cypress/e2e/api.cy.ts`.
 - Tested: Vitest 70 passing (34 in `tests/api/`, was 36 total before this workstream); Cypress E2E 5/5 and component 6/6.
 - Surprise: with fake timers a rejected mock promise is reported as "unhandled" before the test awaits it, so the `run()` helper marks it handled first.
+
+## Task 12: README — done
+Updated the proxy sentence (new `/frame` and `/videos/<file>` rules, `BACKEND_URL`) and added one short paragraph under "Processing flow" listing the extra endpoints. Kept to 2 lines changed/added so it merges easily with the uncommitted README edits on main; the "Run the 36 unit tests" count is left alone for the same reason (it is now 70).
+- Files (frontend): `README.md`.
+- Tested: also ran an end-to-end smoke check: the real Express app (backend worktree, FakeJobStore) behind `vite` with `BACKEND_URL`, and curl through the proxy for health, videos, details (1920×1080, 11.0 s), jobs, 404, frame PNG, 400 bad t, Range 206, upload 201 then 409.
