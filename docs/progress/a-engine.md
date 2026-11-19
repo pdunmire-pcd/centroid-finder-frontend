@@ -160,3 +160,30 @@ instead of returning `NaN` points.
 **Surprising.** The old parser turned a row like `0.04,abc,4` into a point with
 `x: NaN`, which would silently break charts; such rows are now skipped. A "no
 match" point is now `x < 0 || y < 0` everywhere (before, only `x` was checked).
+
+## Task 8: Benchmark — done
+
+**What I built.** `tests/engine/analyzeFrame.bench.ts`, run with `npm run bench`.
+It loads the real 1920x1080 fixture frame, warms the code up, then times many
+runs of the old path (`toBinaryArray` + `findConnectedGroups`) and the new path
+(`analyzeFrame` at scale 1 and 0.5), and prints milliseconds per frame. Files
+ending in `.bench.ts` are not run by `npm test`.
+
+**Results** (Node 24, Apple Silicon laptop, mean ms per 1920x1080 frame):
+
+| case | old | new, scale 1 (exact) | new, scale 0.5 |
+|---|---|---|---|
+| middle color, threshold 60 (1.69 M matching px, 74 groups) | 95.9 ms (10 fps) | 15.0 ms (67 fps) | 6.3 ms (158 fps) |
+| FFA200, threshold 164 (81 k matching px, 34 groups) | 50.3 ms (20 fps) | 5.6 ms (178 fps) | 2.6 ms (381 fps) |
+
+Steps alone (middle color): binarizer 40.7 ms -> 3.9 ms; group finder
+59.7 ms -> 11.1 ms.
+
+**Files.** `tests/engine/analyzeFrame.bench.ts` (new), `package.json` (`bench`
+script only).
+
+**Surprising.** Vitest 5 replaced the old `bench()` API (calling it throws
+"bench is not a function"), so the benchmark is a plain `performance.now()`
+timing loop inside an ordinary test, which is also easier to read. Even the
+worst case (81% of the frame matching) is well under the 41 ms budget for
+24 fps at full resolution, before any downscaling.
