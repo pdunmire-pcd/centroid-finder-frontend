@@ -42,7 +42,7 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-Vite proxies `/api`, `/thumbnail`, `/process`, and `/results` to `http://localhost:3000`. The proxy is configured in `vite.config.ts`.
+Vite proxies `/api`, `/thumbnail`, `/frame`, `/process`, `/results`, and video files under `/videos/<file>` to `http://localhost:3000` (set `BACKEND_URL` to use another address). `/videos` itself, and any page load (`Accept: text/html`), stays with React. The proxy is configured in `vite.config.ts`.
 
 ## Processing flow
 
@@ -55,6 +55,8 @@ Vite proxies `/api`, `/thumbnail`, `/process`, and `/results` to `http://localho
 7. On success, the UI provides a link to the generated CSV.
 
 The server's complete Euclidean color-distance threshold range is `0–442`. The slider intentionally uses `442` so every possible color distance is selectable.
+
+Extra endpoints (not in the class API spec, which stays unchanged): `GET /api/videos/details` (videos with status and size), `POST /api/videos` (upload, field `video`), `GET /api/jobs` and `GET /api/jobs/:id`, `GET /frame/:filename?t=<seconds>` (PNG), and `GET /api/health`. `src/api.ts` wraps them all; in mock mode `src/mock/backend.ts` fakes them in memory.
 
 ## Testing
 
