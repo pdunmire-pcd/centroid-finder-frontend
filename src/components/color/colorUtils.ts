@@ -70,6 +70,30 @@ export function clientToPixel(
   }
 }
 
+// ---- Marker color ----
+
+/** Bright colors that stand out on most videos. */
+export const MARKER_CANDIDATES = ['#00e5ff', '#76ff03', '#ffea00', '#ff00ff', '#2979ff'] as const
+
+/**
+ * Picks the marker color (for the centroid dot or the track line) that is
+ * furthest from the tracking color, so the marker never blends into the
+ * animal it sits on. For a dark red salamander (#660005) this is cyan.
+ */
+export function contrastingMarkerColor(targetColor: string): string {
+  const target = parseInt(targetColor.replace(/^#/, ''), 16)
+  let best: string = MARKER_CANDIDATES[0]
+  let bestDistance = -1
+  for (const candidate of MARKER_CANDIDATES) {
+    const distance = euclideanColorDistance(parseInt(candidate.slice(1), 16), target)
+    if (distance > bestDistance) {
+      best = candidate
+      bestDistance = distance
+    }
+  }
+  return best
+}
+
 // ---- Histogram ----
 
 /**

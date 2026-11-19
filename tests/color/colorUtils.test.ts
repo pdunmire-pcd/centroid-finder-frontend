@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MARKER_CANDIDATES,
   clientToPixel,
+  contrastingMarkerColor,
   describeSpread,
   formatHex,
   formatRgb,
@@ -33,6 +35,20 @@ describe('formatRgb / formatSeconds', () => {
   it('formats for display', () => {
     expect(formatRgb([102, 0, 5])).toBe('rgb(102, 0, 5)')
     expect(formatSeconds(1.234)).toBe('1.23 s')
+  })
+})
+
+describe('contrastingMarkerColor', () => {
+  it('picks cyan for the dark red salamander', () => {
+    expect(contrastingMarkerColor('#660005')).toBe('#00e5ff')
+  })
+
+  it('picks magenta for a green object', () => {
+    expect(contrastingMarkerColor('00ff00')).toBe('#ff00ff')
+  })
+
+  it('always returns one of the candidates', () => {
+    expect(MARKER_CANDIDATES).toContain(contrastingMarkerColor('#ffffff'))
   })
 })
 

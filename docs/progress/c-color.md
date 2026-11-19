@@ -82,3 +82,20 @@ heights, and the distance map paints the animal white and the background black.
 
 Surprising: nothing major. The histogram is memoised on frame + color only,
 so dragging the threshold slider just moves the line without recounting.
+
+## Task 5: TrackingColorLegend — done
+
+Built `TrackingColorLegend`, a small see-through dark chip (swatch, hex, RGB,
+threshold) that a parent can position over a video or image with `sx`; it
+ignores clicks so the video underneath stays usable. Added
+`contrastingMarkerColor(targetColor)` in `colorUtils.ts`: from five bright
+candidate colors it returns the one furthest (by the same Euclidean distance)
+from the tracking color, e.g. cyan for the dark red salamander, for the overlay
+to draw the centroid / track in.
+
+Files: `src/components/color/TrackingColorLegend.tsx`,
+`src/components/color/colorUtils.ts`, `tests/color/colorUtils.test.ts`,
+`cypress/component/color/TrackingColorLegend.cy.tsx`.
+
+Tested: Vitest (cyan for #660005, magenta for green, always a candidate);
+Cypress (shows hex, RGB, threshold and aria-label; parent `sx` positions it).
