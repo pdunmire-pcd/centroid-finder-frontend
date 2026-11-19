@@ -26,16 +26,7 @@ function delay(ms: number): Promise<void> {
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options)
-  if (!res.ok) {
-    let message = `Request failed with status ${res.status}`
-    try {
-      const body = await res.json() as { error?: string }
-      if (body.error) message = body.error
-    } catch {
-      // The body wasn't JSON, so keep the default message.
-    }
-    throw new Error(message)
-  }
+  if (!res.ok) throw new Error(errorMessage(res.status, await res.text()))
   return res.json() as Promise<T>
 }
 
@@ -130,10 +121,66 @@ export async function uploadVideo(
   }
   const body = new FormData()
   body.append('video', file)
-  onProgress?.(0) // TODO(workstream D): real progress with XHR upload.onprogress
-  const result = await fetchJson<VideoInfo>('/api/videos', { method: 'POST', body, signal })
-  onProgress?.(1)
-  return result
+  return sendWithProgress<VideoInfo>('/api/videos', body, onProgress, signal)
+}
+
+// Reads the server's { error } message from a failed response, like fetchJson does.
+function errorMessage(status: number, responseText: string): string {
+  try {
+    const body = JSON.parse(responseText) as { error?: string }
+    if (body.error) return body.error
+  } catch {
+    // The body wasn't JSON, so keep the default message.
+  }
+  return `Request failed with status ${status}`
+}
+
+// POSTs a form with XMLHttpRequest instead of fetch, because fetch can't tell us how
+// much of the upload has been sent yet. XHR fires upload.onprogress as the bytes go out.
+function sendWithProgress<T>(
+  url: string,
+  body: FormData,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('Upload cancelled'))
+      return
+    }
+    const xhr = new XMLHttpRequest()
+    const onAbort = () => xhr.abort()
+    signal?.addEventListener('abort', onAbort)
+    const cleanup = () => signal?.removeEventListener('abort', onAbort)
+
+    xhr.open('POST', url)
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress?.(event.loaded / event.total)
+    }
+    xhr.onload = () => {
+      cleanup()
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(errorMessage(xhr.status, xhr.responseText)))
+        return
+      }
+      try {
+        onProgress?.(1)
+        resolve(JSON.parse(xhr.responseText) as T)
+      } catch {
+        reject(new Error('The server sent a response that was not JSON'))
+      }
+    }
+    xhr.onerror = () => {
+      cleanup()
+      reject(new Error('Network error: could not reach the server'))
+    }
+    xhr.onabort = () => {
+      cleanup()
+      reject(new Error('Upload cancelled'))
+    }
+    onProgress?.(0)
+    xhr.send(body)
+  })
 }
 
 const mockJobs: JobRecord[] = [
