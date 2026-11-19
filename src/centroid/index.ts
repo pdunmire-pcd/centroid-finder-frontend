@@ -18,3 +18,9 @@ export {
   type Coordinate,
   type Group,
 } from './group'
+export {
+  binarizeInto,
+  binaryToRgba,
+  squaredThresholdLimit,
+  type BinarizeResult,
+} from './fastBinarizer'

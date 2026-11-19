@@ -1,14 +1,14 @@
 // Engine functions shared by the Analyze page, color tools and results pages.
 //
-// BASELINE VERSION: these work and keep the agreed signatures, but they are
-// simple, not fast. Workstream A replaces the insides (typed arrays, worker,
-// downscaling) without changing the signatures, so callers never change.
+// The signatures here are a shared contract: other pages call them, so they
+// never change (new parameters and fields are only ever optional). The insides
+// use the fast flat-array code in fastBinarizer.ts and fastGroupFinder.ts.
 
 import type { RgbaImage } from './binarizer'
-import { toBinaryArray } from './binarizer'
 import { euclideanColorDistance } from './colorDistance'
+import { binarizeInto } from './fastBinarizer'
+import { findConnectedGroupsFast } from './fastGroupFinder'
 import type { Group } from './group'
-import { findConnectedGroups } from './groupFinder'
 import type { RgbTriple, TrackPoint, Warning } from '../types'
 
 /** Everything one analysed frame gives back. */
@@ -25,7 +25,8 @@ export type FrameAnalysis = {
 /**
  * Binarizes a frame and finds its groups.
  * `scale` (0-1] analyses a smaller copy and scales coordinates back up.
- * Baseline: only scale = 1 is implemented.
+ * Uses the fast flat-array path (binarizeInto + findConnectedGroupsFast), which
+ * gives exactly the same groups as toBinaryArray + findConnectedGroups.
  */
 export function analyzeFrame(
   frame: RgbaImage,
@@ -33,19 +34,9 @@ export function analyzeFrame(
   threshold: number,
   scale = 1,
 ): FrameAnalysis {
-  void scale // TODO(workstream A): downscaling
-  const rows = toBinaryArray(frame, color, threshold)
-  const groups = findConnectedGroups(rows)
-  const binary = new Uint8Array(frame.width * frame.height)
-  let matchingPixels = 0
-  for (let y = 0; y < frame.height; y++) {
-    for (let x = 0; x < frame.width; x++) {
-      if (rows[y][x] === 1) {
-        binary[y * frame.width + x] = 1
-        matchingPixels++
-      }
-    }
-  }
+  void scale // TODO(task 4): downscaling
+  const { binary, matchingPixels } = binarizeInto(frame, color, threshold)
+  const groups = findConnectedGroupsFast(binary, frame.width, frame.height)
   return { groups, binary, width: frame.width, height: frame.height, matchingPixels }
 }
 
