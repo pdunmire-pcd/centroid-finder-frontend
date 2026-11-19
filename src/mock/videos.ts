@@ -10,3 +10,9 @@ export const mockVideoList: string[] = [
 
 // GET /thumbnail/:filename -> a JPEG. Every mock video uses the same image (in public/mock).
 export const mockThumbnailUrl = '/mock/thumbnail.jpg'
+
+// GET /videos/:filename -> every mock video plays public/mock/sample.mp4
+export const mockVideoUrl = '/mock/sample.mp4'
+
+// What ffprobe says about public/mock/sample.mp4 (11 s, 25 frames per second)
+export const mockVideoProbe = { durationSeconds: 11, width: 1920, height: 1080 }
