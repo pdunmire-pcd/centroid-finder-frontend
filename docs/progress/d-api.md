@@ -44,3 +44,8 @@ Returns `{ ok: true, version }`, with the version read once from `server/package
 `uploadVideo` now sends the form with `XMLHttpRequest`, because `fetch` can't report how much of a request body has been sent. `upload.onprogress` drives `onProgress(fraction)`, the `AbortSignal` calls `xhr.abort()`, and errors use the server's `{ error }` message like `fetchJson` (both now share one `errorMessage` helper).
 - Files (frontend): `src/api.ts`, new `tests/api/upload.test.ts`.
 - Tested: 6 new Vitest tests with a fake XHR (progress, JSON and non-JSON errors, abort before/during, network error).
+
+## Task 9: Vite proxy for /frame and /videos/<file> — done
+Added `/frame` and a regex key `^/videos/.+` that only matches when a file name follows `/videos/`, so the `/videos` chooser page stays a React page. Its `bypass` (`sendPagesToReact`) answers browser page loads (`Accept: text/html`) with `index.html`, so only file requests (a `<video>` tag, fetch) reach Express. The backend address can now be changed with `BACKEND_URL` (default `http://localhost:3000`).
+- Files (frontend): `vite.config.ts`, new `tests/api/viteProxy.test.ts`.
+- Tested: 3 Vitest tests on the proxy rules and the bypass. By hand: ran Vite against a stub server and checked with curl that `/videos` and `/videos/a.mp4` as a page give index.html, `/videos/a.mp4` as a video reaches the backend with its `Range` header, and `/frame` and `/api` are proxied.
