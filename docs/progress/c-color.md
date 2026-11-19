@@ -38,3 +38,24 @@ Files: `src/components/color/TargetColorFromSamples.tsx`,
 Tested: Vitest for `describeSpread`; Cypress checks the average of
 (100,0,0) and (110,0,10) is #690005 with spread 7.1, that the button sends
 that hex, and that it is disabled when the average is already the target.
+
+## Task 3: Suggested threshold — done
+
+Built `ThresholdSuggestion`. It calls the engine's `suggestThreshold`, which
+takes the furthest sample's distance from the average color, adds a safety
+margin (slider, default 15) and 1 (because the binarizer keeps only pixels with
+distance strictly less than the threshold), and rounds up. The suggestion is
+shown next to the current threshold with an Apply button and a one-line
+explanation of the sum. If the target color is not the samples' average, an
+info note says to click "Use this color" first, since the number is measured
+from the average.
+
+Files: `src/components/color/ThresholdSuggestion.tsx`,
+`cypress/component/color/ThresholdSuggestion.cy.tsx`.
+
+Tested: Cypress: samples 7.07 from their average give 24 with margin 15,
+Apply sends 24, three right-arrow presses on the margin slider give 27, the
+"not the average" note shows, and Apply is disabled when already applied.
+
+Surprising: MUI 9 puts `aria-labelledby` on the slider's hidden `<input>`, not
+on the outer element, so tests select `input[aria-labelledby=...]`.
