@@ -33,6 +33,17 @@ export function formatSeconds(seconds: number): string {
 }
 
 /**
+ * Puts the spread of the samples (the furthest sample's color distance from
+ * their average, 0-442) into plain words.
+ */
+export function describeSpread(maxDistance: number): string {
+  if (maxDistance < 10) return 'Very consistent: the samples are almost the same color.'
+  if (maxDistance < 25) return 'Consistent: the samples are close to each other.'
+  if (maxDistance < 50) return 'Somewhat varied: normal for an animal with light and shadow.'
+  return 'Very varied: some samples may be background. Check the list and remove odd ones.'
+}
+
+/**
  * Converts a click position on a (possibly resized) canvas into a pixel of
  * the frame. The canvas is drawn at the frame's real size but CSS may show it
  * bigger or smaller, so we scale by frame size / shown size.

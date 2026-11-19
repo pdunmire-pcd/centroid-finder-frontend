@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { sampleRegion } from '../../centroid/engine'
 import type { ColorSample } from '../../types'
+import { ColorSwatch } from './ColorSwatch'
 import {
   SAMPLE_SIZES,
   clientToPixel,
@@ -204,20 +205,8 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
                 </Button>
               }
             >
-              <Box
-                aria-hidden
-                sx={{
-                  width: 24,
-                  height: 24,
-                  mr: 1.5,
-                  flexShrink: 0,
-                  borderRadius: 0.5,
-                  border: 1,
-                  borderColor: 'divider',
-                  bgcolor: formatHex(sample.rgb),
-                }}
-              />
-              <Typography variant="body2" data-testid="sample-row" sx={{ fontFamily: 'monospace' }}>
+              <ColorSwatch color={formatHex(sample.rgb)} />
+              <Typography variant="body2" data-testid="sample-row" sx={{ fontFamily: 'monospace', ml: 1.5 }}>
                 {formatHex(sample.rgb)} · {formatRgb(sample.rgb)} · {formatSeconds(sample.seconds)} · ({sample.x},{' '}
                 {sample.y}) · {sample.size}×{sample.size}
               </Typography>

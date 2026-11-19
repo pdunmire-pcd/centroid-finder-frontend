@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clientToPixel,
+  describeSpread,
   formatHex,
   formatRgb,
   formatSeconds,
@@ -32,6 +33,15 @@ describe('formatRgb / formatSeconds', () => {
   it('formats for display', () => {
     expect(formatRgb([102, 0, 5])).toBe('rgb(102, 0, 5)')
     expect(formatSeconds(1.234)).toBe('1.23 s')
+  })
+})
+
+describe('describeSpread', () => {
+  it('uses plain words that get more worried as the spread grows', () => {
+    expect(describeSpread(3)).toMatch(/^Very consistent/)
+    expect(describeSpread(15)).toMatch(/^Consistent/)
+    expect(describeSpread(40)).toMatch(/^Somewhat varied/)
+    expect(describeSpread(80)).toMatch(/^Very varied/)
   })
 })
 
