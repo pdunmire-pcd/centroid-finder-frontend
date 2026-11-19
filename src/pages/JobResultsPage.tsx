@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material'
 import { getJob, getTrack, getVideoUrl } from '../api'
 import type { JobRecord, TrackPoint } from '../types'
+import { summarizeTrack } from '../centroid/engine'
 import { monoFontFamily } from '../theme'
 import { PageBreadcrumbs } from '../components/layout/PageBreadcrumbs'
 import { ColorSwatch } from '../components/results/ColorSwatch'
 import { JobStatusChip } from '../components/results/JobStatusChip'
 import { JobProgressSteps } from '../components/results/JobProgressSteps'
 import { ResultsPlayer } from '../components/results/ResultsPlayer'
+import { SummaryTiles } from '../components/results/SummaryTiles'
 import { formatDateTime, formatJobDuration, runAgainUrl, shortJobId } from '../components/results/format'
 import { useVideoTime } from '../components/results/useVideoTime'
 
@@ -89,6 +91,9 @@ export default function JobResultsPage() {
       ignore = true
     }
   }, [resultUrl])
+
+  // Only recalculated when a new CSV arrives, not on every video frame
+  const summary = useMemo(() => (track ? summarizeTrack(track.points) : null), [track])
 
   const crumbs = [{ label: 'Jobs', to: '/jobs' }, { label: shortJobId(jobId) }]
 
@@ -192,6 +197,10 @@ export default function JobResultsPage() {
             currentTime={currentTime}
             videoRef={videoRef}
           />
+          <Stack spacing={2}>
+            <Typography variant="h2">Summary</Typography>
+            {summary && <SummaryTiles summary={summary} />}
+          </Stack>
         </Box>
       )}
     </>

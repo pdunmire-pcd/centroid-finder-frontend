@@ -8,6 +8,13 @@ import type { PaletteMode } from '@mui/material'
 // Monospace font for ids, hex colors and data tables
 export const monoFontFamily = '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'
 
+// Line colors for charts (x = blue, y = orange). Each mode has its own pair,
+// checked for color-blind separation and contrast against that mode's background.
+export const chartSeriesColors: Record<PaletteMode, { x: string; y: string }> = {
+  light: { x: '#2a78d6', y: '#eb6834' },
+  dark: { x: '#3987e5', y: '#d95926' },
+}
+
 // Hides text on screen but keeps it for screen readers (e.g. an "Actions" column header)
 export const visuallyHiddenSx = {
   position: 'absolute',

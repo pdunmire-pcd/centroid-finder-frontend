@@ -78,6 +78,17 @@ describe('job results page', () => {
     cy.contains('nav[aria-label="Breadcrumb"] a', 'Jobs').should('have.attr', 'href', '/jobs')
   })
 
+  it('shows summary tiles with numbers from the CSV', () => {
+    cy.visit('/jobs/mock-job-123')
+    cy.get('[data-cy="summary-tile"]').should('have.length', 6)
+    cy.contains('[data-cy="summary-tile"]', 'Frames').find('[data-cy="summary-value"]').should('have.text', '275')
+    // 15 frames between 4.0 s and 4.6 s have no match
+    cy.contains('[data-cy="summary-tile"]', 'No-match frames').find('[data-cy="summary-value"]').should('have.text', '15')
+    cy.get('[data-cy="summary-value"]').each((value) => {
+      cy.wrap(value).invoke('text').should('match', /^[\d,.]+$/)
+    })
+  })
+
   it('shows the error step for a failed job', () => {
     cy.visit('/jobs/mock-job-122')
     cy.get('[data-cy="job-steps"]').should('contain', 'Failed').and('contain', 'Error processing video')

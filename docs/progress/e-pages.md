@@ -49,3 +49,13 @@
 **Tested:** 4 new Vitest tests for `pointIndexAt` (including a 12,000-row comparison with a linear search); 3 new Cypress tests (finished job, failed job, unknown job). The Cypress tests replace the 5-row mock CSV with a generated 275-row one via `cy.intercept`, because the mock file is tiny. Screenshot: `screenshots/5-results-player.png`.
 
 **Surprising:** `timeupdate` only fires ~4 times a second, so `useVideoTime` also reads the time in a `requestAnimationFrame` loop while the video plays. The new hooks lint rule (`react-hooks/immutability`) refuses `video.currentTime = t` on an element kept in state, so seeking goes through a ref to the same element.
+
+## Task 6: Summary tiles — done
+
+**What:** Next to the video (below it on smaller screens) six tiles show the numbers from `summarizeTrack`: frames, % tracked, no-match frames, duration (s), distance travelled (px) and average speed (px/s). Each tile has a short hint saying where the number comes from. Numbers use thousands separators and tabular digits. The summary is calculated with `useMemo` only when a new CSV arrives, not on every video frame.
+
+**Files:** `src/components/results/SummaryTiles.tsx`, `src/components/results/summary.ts`, `src/pages/JobResultsPage.tsx`, `src/theme.ts` (adds `chartSeriesColors` for Task 7), `tests/results/summary.test.ts`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 2 new Vitest tests for the tile values and formatting; a new Cypress test checks there are 6 tiles, 275 frames and 15 no-match frames, and that every value is a number. Screenshot: `screenshots/6-results-summary-dark.png`.
+
+**Surprising:** the tiles are a `<dl>` (description list) so screen readers read "Frames, 275"; the hint has to live inside the `<dd>`, because a `<dl>` may only contain terms and descriptions.
