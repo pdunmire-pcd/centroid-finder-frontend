@@ -1,4 +1,4 @@
-import { Box, Button, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, Paper, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useState } from 'react'
 import type { FrameAnalysis } from '../../centroid/engine'
 import { useCentroidFrame } from '../../hooks/useCentroidFrame'
@@ -9,6 +9,9 @@ import { CrosshairOverlay } from './CrosshairOverlay'
 import { addTrackPoint, toTrackPoint } from './trackPoints'
 import { seekTo } from './videoControls'
 import { VideoPlayer } from './VideoPlayer'
+
+/** side by side = original with overlay | binarized */
+export type ViewMode = 'side-by-side' | 'original' | 'binarized'
 
 export type AnalyzeViewerProps = {
   /** URL of the video */
@@ -31,6 +34,7 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
   const [video, setVideo] = useState<HTMLVideoElement | null>(null)
   // Centroids recorded while playing, in video pixels, sorted by time.
   const [points, setPoints] = useState<TrackPoint[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>('side-by-side')
 
   const frame = useVideoFrames(video)
 
@@ -53,8 +57,24 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
     if (video) seekTo(video, point.seconds + 0.001)
   }
 
+  // One canvas element for the black-and-white image. Where it goes depends
+  // on the view mode; when it moves, useCentroidFrame draws on the new one.
+  const binarizedCanvas = (
+    <canvas
+      ref={canvasRef}
+      data-testid="binarized-canvas"
+      aria-label="Binarized video frame"
+      style={
+        viewMode === 'binarized'
+          ? { position: 'absolute', inset: 0, width: '100%', height: '100%' } // covers the video
+          : { display: 'block', width: '100%', height: 'auto', borderRadius: 4, background: '#000' }
+      }
+    />
+  )
+
   const overlays = frame && (
     <>
+      {viewMode === 'binarized' && binarizedCanvas}
       <TrajectoryCanvas
         width={frame.videoWidth}
         height={frame.videoHeight}
@@ -66,28 +86,50 @@ export function AnalyzeViewer({ src, targetColor, threshold }: AnalyzeViewerProp
     </>
   )
 
+  const sideBySide = viewMode === 'side-by-side'
+
   return (
     <Stack spacing={2}>
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={viewMode}
+        onChange={(_, value: ViewMode | null) => {
+          if (value !== null) setViewMode(value)
+        }}
+        aria-label="View mode"
+      >
+        <ToggleButton value="side-by-side">Side by side</ToggleButton>
+        <ToggleButton value="original">Original</ToggleButton>
+        <ToggleButton value="binarized">Binarized</ToggleButton>
+      </ToggleButtonGroup>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          // minmax(0, 1fr) lets a column shrink below the video's natural width
+          gridTemplateColumns: { xs: '1fr', md: sideBySide ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr)' },
+        }}
+      >
+        {/* The player is always the first child, so React keeps the same
+            <video> when the mode changes and playback is not interrupted. */}
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Original
+            {viewMode === 'binarized' ? 'Binarized' : 'Original'}
           </Typography>
           <VideoPlayer src={src} onVideoElement={setVideo}>
             {overlays}
           </VideoPlayer>
         </Paper>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Binarized
-          </Typography>
-          <canvas
-            ref={canvasRef}
-            data-testid="binarized-canvas"
-            aria-label="Binarized video frame"
-            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 4, background: '#000' }}
-          />
-        </Paper>
+        {sideBySide && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Binarized
+            </Typography>
+            {binarizedCanvas}
+          </Paper>
+        )}
       </Box>
 
       <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>

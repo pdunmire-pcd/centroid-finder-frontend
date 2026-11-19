@@ -91,3 +91,20 @@ the list.
   640 px the analysis keeps up with all 25 fps.
 - Surprising: a CSS grid column of `1fr` will not shrink below the video's
   natural 1920 px width, so the second panel overflowed; `minmax(0, 1fr)` fixes it.
+
+## Task 5: View modes — done
+
+A toggle group above the player switches between "Side by side" (original with
+overlay | binarized), "Original" and "Binarized". In binarized mode the
+black-and-white canvas is laid over the video, with the trail and crosshair on
+top, and the player controls stay underneath.
+
+- Files: `src/components/player/AnalyzeViewer.tsx`,
+  `cypress/component/player/AnalyzeViewer.cy.tsx`.
+- Tested: a component test switches through all three modes, checks the
+  binarized canvas is redrawn (640 px wide) after it moves, and that the same
+  `<video>` element (and frame number) survives.
+- Surprising: the player Paper is always the first child of the grid, so React
+  keeps the same `<video>` and playback isn't interrupted. The binarized
+  canvas does move, which is why Task 1 kept the canvas in state: the hook
+  sees the new canvas and draws on it at once, even while paused.

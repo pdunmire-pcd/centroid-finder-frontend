@@ -32,6 +32,29 @@ describe('<AnalyzeViewer />', () => {
     cy.get('[data-testid="trail-info"]').should('have.text', 'Trail: 0 points')
   })
 
+  it('switches view modes without reloading the video', () => {
+    cy.get('[aria-label="Next frame"]').click()
+    cy.get('[data-testid="frame-number"]').should('contain', 'Frame 1 ')
+    // mark the <video> element so we can check it's the same one later
+    cy.get('[data-testid="video"]').invoke('attr', 'data-marked', 'yes')
+
+    cy.contains('button', 'Original').click()
+    cy.get('[data-testid="binarized-canvas"]').should('not.exist')
+    cy.get('[data-testid="crosshair-canvas"]').should('exist')
+
+    cy.get('[aria-label="View mode"]').contains('button', 'Binarized').click()
+    // the binarized canvas now sits over the video, and has been drawn again
+    cy.get('[data-testid="video"]')
+      .parent()
+      .find('[data-testid="binarized-canvas"]')
+      .should('have.prop', 'width', 640)
+
+    cy.contains('button', 'Side by side').click()
+    cy.get('[data-testid="binarized-canvas"]').should('have.prop', 'width', 640)
+    cy.get('[data-testid="video"]').should('have.attr', 'data-marked', 'yes')
+    cy.get('[data-testid="frame-number"]').should('contain', 'Frame 1 ')
+  })
+
   it('does not record points while stepping', () => {
     cy.get('[data-testid="centroid-info"]').should('contain', 'Centroid at (')
     cy.get('[aria-label="Next frame"]').click()
