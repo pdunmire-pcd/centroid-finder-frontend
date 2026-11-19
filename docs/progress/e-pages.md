@@ -59,3 +59,13 @@
 **Tested:** 2 new Vitest tests for the tile values and formatting; a new Cypress test checks there are 6 tiles, 275 frames and 15 no-match frames, and that every value is a number. Screenshot: `screenshots/6-results-summary-dark.png`.
 
 **Surprising:** the tiles are a `<dl>` (description list) so screen readers read "Frames, 275"; the hint has to live inside the `<dd>`, because a `<dl>` may only contain terms and descriptions.
+
+## Task 7: Position-over-time chart — done
+
+**What:** A recharts chart under the video plots x (blue) and y (orange) against time. Grey bands show where there was no match, magenta dashed lines mark suspect jumps from `findSuspectFrames` (default 100 px, adjustable in a number field), and a solid line shows the video's current time. Clicking the chart seeks the video. Long CSVs are downsampled to at most 1,500 rows by keeping the first row of each equal-sized bucket (or a gap if any row in the bucket had no match). The bands and suspect marks are still computed from every row.
+
+**Files:** `src/components/results/PositionChart.tsx`, `src/components/results/trackData.ts` (`downsampleForChart`, `noMatchBands`, `DEFAULT_MAX_JUMP_PX`), `src/pages/JobResultsPage.tsx`, `src/theme.ts` (`chartSeriesColors`), `package.json` / `package-lock.json` (`recharts` 3.10.1, pinned), `tests/results/trackData.test.ts`, `cypress/component/results/PositionChart.cy.tsx`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 6 new Vitest tests (downsampling and bands); 2 Cypress component tests (lines/band/legend drawn; a click calls `onSeek` with ~5 s); 2 new E2E tests (clicking the chart moves the video's `currentTime`; changing the max jump changes the suspect count). Screenshot: `screenshots/7-results-chart-dark.png`.
+
+**Surprising:** at first the suspect marks used the theme's warning orange, which looked almost the same as the y line, so they now use their own magenta token. The chart is wrapped in `memo` and gets the time rounded to 0.1 s, so it redraws about 10 times a second while the video plays instead of 60. Recharts only knows which row is under the mouse after a `mousemove`, so the Cypress tests trigger one before the click.

@@ -8,11 +8,13 @@ import type { PaletteMode } from '@mui/material'
 // Monospace font for ids, hex colors and data tables
 export const monoFontFamily = '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'
 
-// Line colors for charts (x = blue, y = orange). Each mode has its own pair,
-// checked for color-blind separation and contrast against that mode's background.
-export const chartSeriesColors: Record<PaletteMode, { x: string; y: string }> = {
-  light: { x: '#2a78d6', y: '#eb6834' },
-  dark: { x: '#3987e5', y: '#d95926' },
+// Colors for charts: x line = blue, y line = orange, suspect-jump marks = magenta.
+// Each mode has its own set, checked for color-blind separation and contrast
+// against that mode's background. Suspect marks are also dashed, so they never
+// rely on color alone.
+export const chartSeriesColors: Record<PaletteMode, { x: string; y: string; suspect: string }> = {
+  light: { x: '#2a78d6', y: '#eb6834', suspect: '#c4407a' },
+  dark: { x: '#3987e5', y: '#d95926', suspect: '#e87ba4' },
 }
 
 // Hides text on screen but keeps it for screen readers (e.g. an "Actions" column header)

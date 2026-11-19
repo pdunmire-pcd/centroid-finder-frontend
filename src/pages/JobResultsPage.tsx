@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material'
 import { getJob, getTrack, getVideoUrl } from '../api'
 import type { JobRecord, TrackPoint } from '../types'
-import { summarizeTrack } from '../centroid/engine'
+import { findSuspectFrames, summarizeTrack } from '../centroid/engine'
 import { monoFontFamily } from '../theme'
 import { PageBreadcrumbs } from '../components/layout/PageBreadcrumbs'
 import { ColorSwatch } from '../components/results/ColorSwatch'
@@ -12,6 +12,8 @@ import { JobStatusChip } from '../components/results/JobStatusChip'
 import { JobProgressSteps } from '../components/results/JobProgressSteps'
 import { ResultsPlayer } from '../components/results/ResultsPlayer'
 import { SummaryTiles } from '../components/results/SummaryTiles'
+import { PositionChart } from '../components/results/PositionChart'
+import { DEFAULT_MAX_JUMP_PX } from '../components/results/trackData'
 import { formatDateTime, formatJobDuration, runAgainUrl, shortJobId } from '../components/results/format'
 import { useVideoTime } from '../components/results/useVideoTime'
 
@@ -42,7 +44,10 @@ export default function JobResultsPage() {
   const [track, setTrack] = useState<{ url: string; points: TrackPoint[] } | null>(null)
   const [trackError, setTrackError] = useState<string | null>(null)
 
-  const { videoRef, currentTime } = useVideoTime()
+  const { videoRef, currentTime, seek } = useVideoTime()
+
+  // A move bigger than this (px between two tracked frames) is a "suspect jump"
+  const [maxJump, setMaxJump] = useState(DEFAULT_MAX_JUMP_PX)
 
   // 1. Fetch the job (again every time pollKey changes)
   useEffect(() => {
@@ -94,6 +99,11 @@ export default function JobResultsPage() {
 
   // Only recalculated when a new CSV arrives, not on every video frame
   const summary = useMemo(() => (track ? summarizeTrack(track.points) : null), [track])
+
+  const suspectIndexes = useMemo(
+    () => (track ? findSuspectFrames(track.points, maxJump) : []),
+    [track, maxJump],
+  )
 
   const crumbs = [{ label: 'Jobs', to: '/jobs' }, { label: shortJobId(jobId) }]
 
@@ -201,6 +211,41 @@ export default function JobResultsPage() {
             <Typography variant="h2">Summary</Typography>
             {summary && <SummaryTiles summary={summary} />}
           </Stack>
+
+          {/* Full-width row under the video and the tiles */}
+          <Paper sx={{ p: 2, gridColumn: '1 / -1' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 1 }}
+            >
+              <Box>
+                <Typography variant="h2">Position over time</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Click anywhere on the chart to jump the video to that time.
+                </Typography>
+              </Box>
+              <TextField
+                label="Suspect jump over (px)"
+                type="number"
+                size="small"
+                value={maxJump}
+                onChange={(e) => {
+                  const value = Number(e.target.value)
+                  if (value > 0) setMaxJump(value)
+                }}
+                slotProps={{ htmlInput: { min: 1, step: 10, 'data-cy': 'max-jump' } }}
+                sx={{ width: 190 }}
+              />
+            </Stack>
+            <PositionChart
+              points={points}
+              suspectIndexes={suspectIndexes}
+              // Rounded to 0.1 s, so the chart redraws ~10 times a second instead of 60
+              currentTime={Math.round(currentTime * 10) / 10}
+              onSeek={seek}
+            />
+          </Paper>
         </Box>
       )}
     </>

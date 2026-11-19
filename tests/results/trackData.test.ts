@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { isTracked, pointIndexAt } from '../../src/components/results/trackData'
+import {
+  downsampleForChart,
+  isTracked,
+  noMatchBands,
+  pointIndexAt,
+} from '../../src/components/results/trackData'
 import type { TrackPoint } from '../../src/types'
 
 // 5 frames, 0.04 s apart (25 frames per second); frame 2 has no match
@@ -37,5 +42,53 @@ describe('pointIndexAt', () => {
       const linear = long.findLastIndex((p) => p.seconds <= t)
       expect(pointIndexAt(long, t)).toBe(linear)
     }
+  })
+})
+
+describe('downsampleForChart', () => {
+  it('keeps every row when there are few, with null for no match', () => {
+    expect(downsampleForChart(points)).toEqual([
+      { seconds: 0, x: 10, y: 10 },
+      { seconds: 0.04, x: 12, y: 11 },
+      { seconds: 0.08, x: null, y: null },
+      { seconds: 0.12, x: 15, y: 13 },
+      { seconds: 0.16, x: 16, y: 14 },
+    ])
+  })
+
+  it('keeps one row per bucket for long tracks', () => {
+    const long = Array.from({ length: 12000 }, (_, i) => ({ seconds: i * 0.04, x: i, y: i }))
+    const rows = downsampleForChart(long, 1500)
+    expect(rows).toHaveLength(1500) // 12000 / 8
+    expect(rows[1]).toEqual({ seconds: 8 * 0.04, x: 8, y: 8 })
+  })
+
+  it('keeps a gap when any row in the bucket had no match', () => {
+    const long = Array.from({ length: 100 }, (_, i) => ({ seconds: i, x: i === 13 ? -1 : i, y: i === 13 ? -1 : i }))
+    const rows = downsampleForChart(long, 10) // buckets of 10 rows
+    expect(rows[1]).toEqual({ seconds: 10, x: null, y: null })
+    expect(rows[2]).toEqual({ seconds: 20, x: 20, y: 20 })
+  })
+})
+
+describe('noMatchBands', () => {
+  it('turns runs of no-match rows into time bands', () => {
+    const track = [0, 1, -1, -1, 4, -1, 6].map((x, i) => ({ seconds: i, x, y: x }))
+    expect(noMatchBands(track)).toEqual([
+      { start: 2, end: 4 },
+      { start: 5, end: 6 },
+    ])
+  })
+
+  it('closes a band that runs to the end one frame after the last row', () => {
+    const track = [0, -1, -1].map((x, i) => ({ seconds: i * 0.04, x, y: x }))
+    const bands = noMatchBands(track)
+    expect(bands).toHaveLength(1)
+    expect(bands[0].start).toBeCloseTo(0.04)
+    expect(bands[0].end).toBeCloseTo(0.12)
+  })
+
+  it('returns nothing when every frame is tracked', () => {
+    expect(noMatchBands([{ seconds: 0, x: 1, y: 1 }])).toEqual([])
   })
 })

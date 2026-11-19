@@ -89,6 +89,28 @@ describe('job results page', () => {
     })
   })
 
+  it('jumps the video when the chart is clicked', () => {
+    cy.visit('/jobs/mock-job-123')
+    cy.get('[data-cy="position-chart"] .recharts-surface').should('be.visible')
+    cy.get('[data-cy="results-video"]').should('have.prop', 'currentTime', 0)
+
+    // Recharts finds the row under the mouse on mousemove, then click uses it
+    cy.get('[data-cy="position-chart"] .recharts-surface').trigger('mousemove', 'center')
+    cy.get('[data-cy="position-chart"] .recharts-surface').click('center')
+
+    cy.get('[data-cy="results-video"]').its('0.currentTime').should('be.greaterThan', 3)
+    cy.get('[data-cy="readout-time"]').should('not.have.text', '0:00.0')
+  })
+
+  it('counts suspect jumps and updates them when the limit changes', () => {
+    cy.visit('/jobs/mock-job-123')
+    // Flagged with the default 100 px: the 400 px jump at 7.0 s (twice: jumping
+    // away and coming back) and the ~145 px move across the 0.6 s no-match gap
+    cy.get('[data-cy="position-chart"]').should('contain', 'Suspect jump (3)')
+    cy.get('[data-cy="max-jump"]').clear().type('1000')
+    cy.get('[data-cy="position-chart"]').should('contain', 'Suspect jump (0)')
+  })
+
   it('shows the error step for a failed job', () => {
     cy.visit('/jobs/mock-job-122')
     cy.get('[data-cy="job-steps"]').should('contain', 'Failed').and('contain', 'Error processing video')
