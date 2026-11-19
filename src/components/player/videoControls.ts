@@ -4,6 +4,11 @@
 
 import { clamp, countFrames, frameToTime, timeToFrame } from './videoMath'
 
+/** Starts loading a new video from a URL. */
+export function loadVideo(video: HTMLVideoElement, url: string) {
+  video.src = url
+}
+
 export function togglePlay(video: HTMLVideoElement) {
   if (video.paused) {
     // play() returns a promise that rejects if the browser blocks playback;

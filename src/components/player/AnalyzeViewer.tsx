@@ -14,8 +14,8 @@ import { VideoPlayer } from './VideoPlayer'
 export type ViewMode = 'side-by-side' | 'original' | 'binarized'
 
 export type AnalyzeViewerProps = {
-  /** URL of the video */
-  src: string
+  /** URL of the video, or a File from the user's computer */
+  src: string | File
   /** hex color, e.g. "#ff0000" */
   targetColor: string
   /** 0-442 */

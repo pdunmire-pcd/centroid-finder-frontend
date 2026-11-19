@@ -1,13 +1,14 @@
-import { Box, Button, Slider, Stack, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
+import { Alert, Box, Button, Slider, Stack, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
 import { useCallback, useEffect, useEffectEvent, useState, type ReactNode } from 'react'
 import { isButtonTarget, isTypingTarget, shortcutForKey, type ShortcutAction } from './shortcuts'
-import { seekBy, seekTo, setPlaybackSpeed, stepFrames, togglePlay } from './videoControls'
+import { describeMediaError } from './localVideo'
+import { loadVideo, seekBy, seekTo, setPlaybackSpeed, stepFrames, togglePlay } from './videoControls'
 import { countFrames, DEFAULT_FPS, estimateFps, formatTime, PLAYBACK_SPEEDS, timeToFrame } from './videoMath'
 import { watchVideoFrames } from './watchVideoFrames'
 
 export type VideoPlayerProps = {
-  /** URL of the video */
-  src: string
+  /** URL of the video, or a File from the user's computer */
+  src: string | File
   /** Gives the parent the <video> element, e.g. to read its frames. */
   onVideoElement?: (video: HTMLVideoElement | null) => void
   /** Drawn on top of the video, e.g. the trajectory canvas. */
@@ -29,6 +30,9 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
   const [speed, setSpeed] = useState(1)
   // null until we have measured the frame rate from the video itself
   const [measuredFps, setMeasuredFps] = useState<number | null>(null)
+  // The error belongs to the src it happened with, so a new src starts clean.
+  const [failure, setFailure] = useState<{ src: string | File; message: string } | null>(null)
+  const errorMessage = failure?.src === src ? failure.message : null
 
   const fps = measuredFps ?? DEFAULT_FPS
   const frame = timeToFrame(currentTime, fps)
@@ -43,6 +47,26 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
     },
     [onVideoElement],
   )
+
+  // Load the video. A File from the user's computer has no URL, so we ask the
+  // browser for a temporary "blob:" URL that points at the file in memory.
+  // The cleanup revokes (frees) it when the file changes or the player closes.
+  useEffect(() => {
+    if (!video) return
+    const url = typeof src === 'string' ? src : URL.createObjectURL(src)
+    loadVideo(video, url)
+    return () => {
+      if (typeof src !== 'string') URL.revokeObjectURL(url)
+    }
+  }, [video, src])
+
+  // If the browser can't play the file, the <video> fires an "error" event.
+  useEffect(() => {
+    if (!video) return
+    const onError = () => setFailure({ src, message: describeMediaError(video.error?.code) })
+    video.addEventListener('error', onError)
+    return () => video.removeEventListener('error', onError)
+  }, [video, src])
 
   // Keep our state in sync with what the <video> element is doing.
   useEffect(() => {
@@ -120,7 +144,6 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
       <Box sx={{ position: 'relative', lineHeight: 0, bgcolor: 'common.black', borderRadius: 1, overflow: 'hidden' }}>
         <video
           ref={attachVideo}
-          src={src}
           preload="auto"
           playsInline
           data-testid="video"
@@ -128,6 +151,12 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
         />
         {children}
       </Box>
+
+      {errorMessage && (
+        <Alert severity="error" sx={{ mt: 1 }} data-testid="video-error">
+          {errorMessage}
+        </Alert>
+      )}
 
       <Slider
         aria-label="Seek"

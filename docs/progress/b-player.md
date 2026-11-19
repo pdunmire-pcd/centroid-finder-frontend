@@ -108,3 +108,28 @@ top, and the player controls stay underneath.
   keeps the same `<video>` and playback isn't interrupted. The binarized
   canvas does move, which is why Task 1 kept the canvas in state: the hook
   sees the new canvas and draws on it at once, even while paused.
+
+## Task 6: Local files — done
+
+`VideoPlayer` (and so `AnalyzeViewer`) now takes `src: string | File`. For a
+File it makes a temporary `blob:` URL with `URL.createObjectURL(file)` inside an
+effect, and the effect's cleanup calls `URL.revokeObjectURL` when the file
+changes or the player unmounts, so the memory is freed. If the `<video>` fires
+an `error` event, a clear message is shown (e.g. "Your browser cannot play this
+video format. Try converting it to MP4 (H.264)."). New `LocalVideoPicker`
+(button + hidden `<input type="file" accept="video/*">`) and `VideoDropZone`
+(drag and drop), plus pure checks: `localFileError` (not a video) and
+`localFileWarning` (over 2 GB).
+
+- Files: `src/components/player/localVideo.ts`, `LocalVideoPicker.tsx` (new);
+  `VideoPlayer.tsx`, `AnalyzeViewer.tsx`, `videoControls.ts` (`loadVideo`).
+  Tests: `tests/player/localVideo.test.ts`,
+  `cypress/component/player/LocalVideo.cy.tsx`.
+- Tested: 7 Vitest tests; 4 component tests (a File plays through a `blob:`
+  URL, a fake .mp4 shows the decode error, picker and drag-and-drop call
+  `onFile` with the file from `cy.selectFile`).
+- Moved to Task 7: disabling Process (with a tooltip) for local videos lives on
+  the page, which is where `ProcessingControls` is used.
+- Surprising: creating the URL in an effect (not in `useMemo`) matters in
+  React's StrictMode, which runs effects twice in development: the first
+  cleanup revokes the URL, and the second run makes a fresh one.
