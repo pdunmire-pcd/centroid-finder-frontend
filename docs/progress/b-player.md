@@ -160,3 +160,24 @@ frames are being skipped (video frames come from `getVideoPlaybackQuality()`).
   empty, and changing that file belongs to someone else, so for local videos we
   pass `''`. The side effect is that the card says "Video: No video selected";
   a small `disabledReason` prop would fix it after the merge.
+
+## Task 8: Tests — done
+
+Added a component test for the whole page and the E2E test in mock mode, then
+ran every suite. The page test mounts `AnalyzePage` in a `MemoryRouter` for a
+server video (the `/videos/demo.mp4` request is redirected to the sample), a
+threshold change, a local File in history state (Process disabled) and the
+empty `/analyze/local` panel. The E2E test plays, pauses, steps 10 frames and
+checks the frame number and centroid text change; it opens a local file with
+`cy.selectFile` (button, empty-page panel, and drag-and-drop), rejects a CSV,
+checks Process still works for server videos and that `/preview/...` redirects.
+
+- Files: `cypress/component/player/AnalyzePage.cy.tsx`, `cypress/e2e/analyze.cy.ts`.
+- Results: `tsc -b`, lint and build pass; Vitest 76/76; Cypress component
+  32/32 (7 specs); Cypress E2E 7/7 (`analyze.cy.ts` 6, `processing.cy.ts` 1).
+  The Cypress files were also typechecked with a temporary tsconfig (the
+  project's `tsc -b` only covers `src`).
+- Surprising: E2E ran against `vite --mode mock --port 5183 --strictPort` with
+  `--config baseUrl=http://localhost:5183`, so it could not hit another
+  worktree's dev server on 5173. Electron (Cypress's default browser) plays the
+  H.264 sample fine.
