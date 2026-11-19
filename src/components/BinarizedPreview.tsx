@@ -1,12 +1,6 @@
 import { Alert, Box, CircularProgress, Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
-import {
-  findConnectedGroups,
-  parseHexColor,
-  toBinaryArray,
-  toImageData,
-  type Group,
-} from '../centroid'
+import { useEffect, useState } from 'react'
+import { useCentroidFrame } from '../hooks/useCentroidFrame'
 
 export type BinarizedPreviewProps = {
   /** URL of the frame to binarize, e.g. `/thumbnail/${filename}` */
@@ -47,26 +41,12 @@ async function loadImageData(src: string, signal: AbortSignal): Promise<ImageDat
   return ctx.getImageData(0, 0, canvas.width, canvas.height)
 }
 
-/** Draws a red dot with a white outline, sized relative to the image. */
-function drawCentroid(ctx: CanvasRenderingContext2D, group: Group) {
-  const radius = Math.max(4, Math.round(ctx.canvas.width / 120))
-  ctx.beginPath()
-  ctx.arc(group.centroid.x, group.centroid.y, radius, 0, Math.PI * 2)
-  ctx.fillStyle = '#ff1744'
-  ctx.fill()
-  ctx.lineWidth = Math.max(1, radius / 3)
-  ctx.strokeStyle = '#ffffff'
-  ctx.stroke()
-}
-
 export function BinarizedPreview({
   imageSrc,
   targetColor,
   threshold,
 }: BinarizedPreviewProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [loaded, setLoaded] = useState<LoadResult | null>(null)
-  const [largest, setLargest] = useState<Group | null>(null)
 
   // Results from a previous imageSrc count as "still loading".
   const current = loaded?.src === imageSrc ? loaded : null
@@ -91,37 +71,8 @@ export function BinarizedPreview({
   }, [imageSrc])
 
   // 2. Re-binarize whenever the image, color or threshold changes.
-  //    requestAnimationFrame + cancel means fast slider drags only compute the
-  //    latest value instead of queueing up every intermediate one.
-  useEffect(() => {
-    if (!source) return
-
-    let color: number
-    try {
-      color = parseHexColor(targetColor)
-    } catch {
-      return // ignore invalid colors and keep the last good preview
-    }
-
-    const frame = requestAnimationFrame(() => {
-      const canvas = canvasRef.current
-      const ctx = canvas?.getContext('2d')
-      if (!canvas || !ctx) return
-
-      const binary = toBinaryArray(source, color, threshold)
-      const groups = findConnectedGroups(binary)
-
-      canvas.width = source.width
-      canvas.height = source.height
-      ctx.putImageData(toImageData(binary), 0, 0)
-
-      const biggest = groups[0] ?? null
-      if (biggest) drawCentroid(ctx, biggest)
-      setLargest(biggest)
-    })
-
-    return () => cancelAnimationFrame(frame)
-  }, [source, targetColor, threshold])
+  //    The shared hook does the work and draws on the canvas we give it.
+  const { canvasRef, largest } = useCentroidFrame(source, targetColor, threshold)
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>
