@@ -1,9 +1,63 @@
-import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Link, Paper, Typography } from '@mui/material'
+import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Alert, Box, Button, Link, Paper, Stack, Typography } from '@mui/material'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { getProcessingStatus, getThumbnailUrl, processVideo } from '../api'
 import { ProcessingControls } from '../components/ProcessingControls'
 import { BinarizedPreview } from '../components/BinarizedPreview'
+import { analyzeFrame, checkFrameQuality } from '../centroid/engine'
+import { parseHexColor } from '../centroid/colorDistance'
+import { ColorToolsPanel } from '../components/color/ColorToolsPanel'
+import { DistanceHistogram } from '../components/color/DistanceHistogram'
+import { DistanceMap } from '../components/color/DistanceMap'
+import { LiveStatsPanel } from '../components/quality/LiveStatsPanel'
+import { WarningsPanel } from '../components/quality/WarningsPanel'
+
+// ---- Interim color tools (workstream C) ----
+// The new Analyze page (workstream B) will pass live video frames instead.
+
+/**
+ * Loads an image URL into raw pixels (null while loading or on error).
+ * colorSpaceConversion: 'none' keeps the file's exact RGB values, like Java.
+ */
+function useImageData(src: string): ImageData | null {
+  const [loaded, setLoaded] = useState<{ src: string; image: ImageData } | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function load() {
+      const response = await fetch(src, { signal: controller.signal })
+      if (!response.ok) throw new Error(`status ${response.status}`)
+      const bitmap = await createImageBitmap(await response.blob(), { colorSpaceConversion: 'none' })
+      const canvas = document.createElement('canvas')
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) throw new Error('Canvas is not supported')
+      ctx.drawImage(bitmap, 0, 0)
+      bitmap.close()
+      // use the canvas size: a closed bitmap reports width and height 0
+      setLoaded({ src, image: ctx.getImageData(0, 0, canvas.width, canvas.height) })
+    }
+    // BinarizedPreview already shows the load error, so we just stay at null
+    load().catch(() => {})
+    return () => controller.abort()
+  }, [src])
+
+  // an image from an older src counts as "still loading"
+  return loaded?.src === src ? loaded.image : null
+}
+
+/** A titled card. */
+function Panel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Paper sx={{ p: 2 }}>
+      <Typography variant="h6" component="h2" gutterBottom>
+        {title}
+      </Typography>
+      {children}
+    </Paper>
+  )
+}
 
 // Route: /preview/:filename
 // Starter version: shows the first frame. Nadia's binarized canvas and
@@ -18,6 +72,21 @@ export default function PreviewPage() {
   const [statusMessage, setStatusMessage] = useState('')
   const [csvUrl, setCsvUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // The thumbnail is the first frame, so its time is 0 seconds.
+  const frame = useImageData(getThumbnailUrl(filename))
+  // Deferred values let the slider stay smooth while the analysis catches up.
+  const deferredColor = useDeferredValue(targetColor)
+  const deferredThreshold = useDeferredValue(threshold)
+  const analysis = useMemo(() => {
+    if (!frame) return null
+    try {
+      return analyzeFrame(frame, parseHexColor(deferredColor), deferredThreshold)
+    } catch {
+      return null // invalid color
+    }
+  }, [frame, deferredColor, deferredThreshold])
+  const warnings = analysis ? checkFrameQuality(analysis) : null
 
   const startProcessing = async () => {
     setError(null)
@@ -70,28 +139,42 @@ export default function PreviewPage() {
         {filename}
       </Typography>
 
-      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Original
-          </Typography>
-          <Box
-            component="img"
-            src={getThumbnailUrl(filename)}
-            alt={`First frame of ${filename}`}
-            sx={{ width: '100%', display: 'block' }}
-          />
-        </Paper>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Binarized
-          </Typography>
-          <BinarizedPreview
-            imageSrc={getThumbnailUrl(filename)}
+      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, alignItems: 'start' }}>
+        {/* Left: the original frame, which you click to sample the animal */}
+        <Panel title="Tracking color">
+          <ColorToolsPanel
+            frame={frame}
+            currentTime={0}
+            filename={filename}
             targetColor={targetColor}
             threshold={threshold}
+            onTargetColorChange={setTargetColor}
+            onThresholdChange={setThreshold}
           />
-        </Paper>
+        </Panel>
+
+        {/* Right: what the tracker will see with these settings */}
+        <Stack spacing={3}>
+          <Panel title="Binarized">
+            <BinarizedPreview
+              imageSrc={getThumbnailUrl(filename)}
+              targetColor={targetColor}
+              threshold={threshold}
+            />
+          </Panel>
+          <Panel title="Frame check">
+            <Stack spacing={2}>
+              <LiveStatsPanel analysis={analysis} />
+              <WarningsPanel warnings={warnings} />
+            </Stack>
+          </Panel>
+          <Panel title="Color distances">
+            <DistanceHistogram frame={frame} targetColor={targetColor} threshold={threshold} />
+          </Panel>
+          <Panel title="Distance map">
+            <DistanceMap frame={frame} targetColor={targetColor} threshold={threshold} />
+          </Panel>
+        </Stack>
       </Box>
 
       <Box sx={{ mt: 3 }}>
