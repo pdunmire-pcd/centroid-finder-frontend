@@ -3,6 +3,7 @@ import { Alert, Box, Button, Link, Paper, Typography } from '@mui/material'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { getProcessingStatus, getThumbnailUrl, processVideo } from '../api'
 import { ProcessingControls } from '../components/ProcessingControls'
+import { BinarizedPreview } from '../components/BinarizedPreview'
 
 // Route: /preview/:filename
 // Starter version: shows the first frame. Nadia's binarized canvas and
@@ -85,8 +86,11 @@ export default function PreviewPage() {
           <Typography variant="h6" gutterBottom>
             Binarized
           </Typography>
-          {/* TODO (Nadia): binarized canvas + centroid dot */}
-          <Typography color="text.secondary">Binarized preview goes here.</Typography>
+          <BinarizedPreview
+            imageSrc={getThumbnailUrl(filename)}
+            targetColor={targetColor}
+            threshold={threshold}
+          />
         </Paper>
       </Box>
 
