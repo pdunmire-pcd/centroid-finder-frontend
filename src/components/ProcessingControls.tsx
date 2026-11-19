@@ -30,7 +30,7 @@ export function ProcessingControls({
   isProcessing,
 }: ProcessingControlsProps) {
   useEffect(() => {
-    if (typeof threshold !== 'number' || threshold < 0 || threshold > 255) {
+    if (typeof threshold !== 'number' || threshold < 0 || threshold > 442) {
       onThresholdChange(128)
     }
   }, [threshold, onThresholdChange])
@@ -58,7 +58,7 @@ export function ProcessingControls({
                 if (typeof value === 'number') onThresholdChange(value)
               }}
               min={0}
-              max={255}
+              max={442}
               valueLabelDisplay="auto"
             />
           </Box>
