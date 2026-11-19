@@ -1,44 +1,38 @@
-import { Link } from 'react-router-dom'
-import { Box, Card, CardActionArea, CardContent, CardMedia, Typography } from '@mui/material'
-import { getThumbnailUrl } from '../api'
+import type { ReactNode } from 'react'
+import { Box, Typography } from '@mui/material'
+import type { VideoInfo } from '../types'
+import { VideoCard } from './videos/VideoCard'
 
 type VideoListProps = {
-  videos: string[]
+  videos: VideoInfo[]
+  /** optional card shown first in the grid, e.g. "Open from this computer" */
+  firstCard?: ReactNode
+  /** shown under the grid when there are no videos */
+  emptyMessage?: string
 }
 
 // Just displays the videos it's given (no fetching), so it's easy to wrap with withLoading.
-export default function VideoList({ videos }: VideoListProps) {
-  if (videos.length === 0) {
-    return <Typography color="text.secondary">No videos found in the videos folder.</Typography>
-  }
-
+export default function VideoList({ videos, firstCard, emptyMessage = 'No videos found.' }: VideoListProps) {
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gap: 3,
-        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-      }}
-    >
-      {videos.map((filename) => (
-        <Card key={filename} data-cy="video-card">
-          {/* The whole card is a link to the preview page */}
-          <CardActionArea component={Link} to={`/preview/${encodeURIComponent(filename)}`}>
-            <CardMedia
-              component="img"
-              height="150"
-              image={getThumbnailUrl(filename)}
-              alt={`First frame of ${filename}`}
-              sx={{ objectFit: 'cover', bgcolor: 'grey.200' }}
-            />
-            <CardContent>
-              <Typography variant="subtitle1" noWrap title={filename}>
-                {filename}
-              </Typography>
-            </CardContent>
-          </CardActionArea>
-        </Card>
-      ))}
-    </Box>
+    <>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          // As many 220 px columns as fit; one column on a phone
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        }}
+      >
+        {firstCard}
+        {videos.map((video) => (
+          <VideoCard key={video.filename} video={video} />
+        ))}
+      </Box>
+      {videos.length === 0 && (
+        <Typography color="text.secondary" sx={{ mt: 2 }} data-cy="videos-empty">
+          {emptyMessage}
+        </Typography>
+      )}
+    </>
   )
 }
