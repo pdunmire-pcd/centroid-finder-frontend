@@ -29,3 +29,13 @@
 **Tested:** 2 new Cypress tests (upload with progress → success, cancel) pass in mock mode; tsc, lint, unit tests and build pass.
 
 **Surprising:** after a cancel the request rejects like any error, so the code checks `controller.signal.aborted` to tell a cancel apart from a real failure. The baseline real-server `uploadVideo` only reports 0 and 1 (workstream D adds XHR progress), so the bar jumps on the real server until D's change lands.
+
+## Task 4: Jobs page — done
+
+**What:** `/jobs` shows every run from `getJobs()` in a compact table: short job id (monospace, full id on hover), video, target color swatch + hex, threshold, status chip (with the error message under failed jobs), started time as "5 min. ago" with the exact time in a tooltip, and a Results/Details link to `/jobs/:jobId`. Filter chips All / Processing / Done / Error show counts and use `aria-pressed`. Jobs are sorted newest first. While any job is processing the page re-fetches every 3 s; once none are processing the interval is cleared, so polling stops by itself.
+
+**Files:** `src/pages/JobsPage.tsx`, `src/components/results/` (`format.ts`, `ColorSwatch.tsx`, `JobStatusChip.tsx`), `src/theme.ts` (`visuallyHiddenSx`), `src/App.tsx` (route), `tests/results/format.test.ts`, `cypress/e2e/jobs.cy.ts`.
+
+**Tested:** 8 new Vitest tests (ids, hex, relative time, duration, filtering/sorting); 3 Cypress tests (list, filters, open results) pass in mock mode. Screenshot: `screenshots/4-jobs-light.png`.
+
+**Surprising:** in MUI `sx`, `width: 1` means 100%, not 1 px, so the screen-reader-only style needs the string `'1px'`. On a phone the table scrolls sideways inside its card (min width 760 px) instead of squashing the columns.

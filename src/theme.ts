@@ -8,6 +8,16 @@ import type { PaletteMode } from '@mui/material'
 // Monospace font for ids, hex colors and data tables
 export const monoFontFamily = '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'
 
+// Hides text on screen but keeps it for screen readers (e.g. an "Actions" column header)
+export const visuallyHiddenSx = {
+  position: 'absolute',
+  width: '1px', // a plain 1 would mean 100% in sx
+  height: '1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+} as const
+
 // Colors for the two modes. Picked so text has good contrast on both.
 const lightPalette = {
   primary: { main: '#1d5f8a' }, // steel blue

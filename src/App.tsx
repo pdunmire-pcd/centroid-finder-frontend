@@ -3,6 +3,7 @@ import { Box, Container } from '@mui/material'
 import { TopBar } from './components/layout/TopBar'
 import VideoChooserPage from './pages/VideoChooserPage'
 import PreviewPage from './pages/PreviewPage'
+import JobsPage from './pages/JobsPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/videos" replace />} />
           <Route path="/videos" element={<VideoChooserPage />} />
           <Route path="/preview/:filename" element={<PreviewPage />} />
+          <Route path="/jobs" element={<JobsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Container>
