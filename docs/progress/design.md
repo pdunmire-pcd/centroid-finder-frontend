@@ -56,9 +56,10 @@ options with `Cypress.expose()` and the command line passes `--expose`.
 | Not found | light / dark | none |
 
 **Screenshots:** `design-screenshots/before/<page>-<theme>-<width>.jpg`
-(40 files). Note: in a full-page capture Cypress scrolls and stitches, so the
-sticky top bar appears several times in the before pictures; the after
-screenshots unstick it just for the capture.
+(40 files). They were re-taken in step 4 from the unchanged
+`upgrade/integration` code with the final screenshot spec, so before and
+after are captured the same way (the sticky top bar is unstuck for the
+full-page capture, and the window is big enough for 1920 px).
 
 ## Step 1: design tokens, fonts, logo and contrast checks — done
 
@@ -282,3 +283,134 @@ ancestor inside the scroll box it was placed relative to the page.
 
 **Checked:** tsc, lint, unit tests, build, all Cypress component and E2E
 specs (including the two new ones).
+
+## Step 4: after screenshots, axe after, final checks — done
+
+**What:** took the after screenshots (and re-took the before set the same
+way from the untouched `upgrade/integration` code), ran the axe report again,
+and made 2x close-ups of the centroid dot.
+
+- `cypress.config.ts`: headless Electron opens a 1280 × 720 window, which
+  cropped the 1920 px screenshots; the e2e config now launches Electron with a
+  2000 × 1200 window (`before:browser:launch`). Nothing else changes:
+  `cy.viewport` still sets the page size.
+- `scripts/crop-dot-closeups.mjs` finds the red centroid dot on the binarized
+  view in the 2x Analyze screenshots and saves 240 px device-pixel crops
+  (enlarged without smoothing) as
+  `design-screenshots/closeups/centroid-dot-{before,after}.png`. Before, the
+  mask edges are smeared by the browser's smoothing; after, every analysed
+  pixel is a crisp square and the dot is drawn on its own DPR canvas. For this
+  640-px-wide analysed frame shown about 410 CSS px wide the gain is modest;
+  it is largest for small videos on big or 3x screens.
+
+**Axe after** (`design-axe-after.json`, all impacts, both themes):
+
+| Page | Before (light / dark) | After (light / dark) |
+| --- | --- | --- |
+| Videos | 1 serious (color-contrast), 1 moderate (heading-order) / same | 0 / 0 |
+| Analyze | 2 serious + 9 nodes label-name mismatch, 2 moderate / 1 serious + 9, 2 moderate | 0 / 0 |
+| Jobs | 1 serious (contrast) + 5 nodes label-name mismatch / same | 0 / 0 |
+| Job results | 0 / 0 | 0 / 0 |
+| Not found | 0 / 0 | 0 / 0 |
+
+The E2E spec `a11y.cy.ts` keeps it that way (serious + critical fail the run).
+
+**Screenshots** (`design-screenshots/before/` and `after/`, 40 each,
+`<page>-<theme>-<width>.jpg`, pages `videos`, `analyze`, `jobs`,
+`job-results`, `not-found`, widths 375 / 768 / 1280 / 1920). Highlights:
+
+- `after/analyze-light-1280.jpg` vs `before/analyze-light-1280.jpg`: calm
+  layout, sharp overlays, cyan crosshair visible on the pink floor.
+- `after/analyze-dark-375.jpg`: everything stacks in one column on a phone.
+- `after/jobs-light-1920.jpg` vs `before/jobs-light-1920.jpg`: soft status
+  tints, quiet table header, content centred on a wide screen.
+- `after/jobs-light-375.jpg`: the table scrolls inside its card with a hint.
+- `after/job-results-dark-1280.jpg`: espresso dark mode with the chart and
+  CSV table.
+- `closeups/centroid-dot-before.png` / `centroid-dot-after.png`.
+
+**Final checks on this commit:** `npx tsc -b` ok, `npm run lint` ok (0
+problems), `npm test` 35 files / 307 tests pass, `npm run build` ok, Cypress
+component 19 specs / 73 tests pass, Cypress E2E 7 specs / 51 tests pass
+(including `a11y.cy.ts` and `responsive.cy.ts`), against
+`npx vite --mode mock --port 5186`.
+
+**Known limitations**
+
+- Automated axe checks find only part of the real problems. The keyboard paths
+  (skip link, tabs, player buttons and shortcuts, sliders, sampler arrow keys,
+  table rows) were checked in tests and by reading the code, not with a real
+  screen reader.
+- The recharts chart itself is not keyboard-operable; the CSV table below it is
+  the accessible equivalent and says so in the chart's label.
+- On phones the top bar shows the mode toggle before the tabs visually while
+  the Tab order is logo, tabs, badge, toggle (CSS `order`).
+- The MUI Tabs are used as navigation links (as before, and the Jobs E2E test
+  relies on `role="tab"`); a plain list of links with `aria-current` would be
+  the purer pattern.
+- `cypress-axe` 1.7.0 declares Cypress ≤ 15 as a peer; `package.json`
+  `overrides` accepts our Cypress 16. It worked in every run here.
+- Raster canvases are not upscaled to the DPR on purpose (no new detail, and
+  their exact pixels matter); they are shown `pixelated` instead.
+
+## Contrast table (both themes)
+
+Generated from `tests/layout/contrast.test.ts` (WCAG 2.2 AA: 4.5:1 for text,
+3:1 for large text, control borders, the focus ring and chart lines).
+
+| Mode | Pair | Colors | Ratio | Needs | Result |
+| --- | --- | --- | --- | --- | --- |
+| light | text on background | `#2E2A26` on `#FAF7F2` | 13.32:1 | 4.5:1 | pass |
+| light | secondary text on background | `#6B6158` on `#FAF7F2` | 5.65:1 | 4.5:1 | pass |
+| light | accent (links) on background | `#52705A` on `#FAF7F2` | 5.14:1 | 4.5:1 | pass |
+| light | text on paper | `#2E2A26` on `#FFFDF9` | 14.01:1 | 4.5:1 | pass |
+| light | secondary text on paper | `#6B6158` on `#FFFDF9` | 5.95:1 | 4.5:1 | pass |
+| light | accent (links) on paper | `#52705A` on `#FFFDF9` | 5.41:1 | 4.5:1 | pass |
+| light | text on subtle | `#2E2A26` on `#F3EEE6` | 12.32:1 | 4.5:1 | pass |
+| light | secondary text on subtle | `#6B6158` on `#F3EEE6` | 5.23:1 | 4.5:1 | pass |
+| light | accent (links) on subtle | `#52705A` on `#F3EEE6` | 4.75:1 | 4.5:1 | pass |
+| light | text on accent (primary button) | `#FFFFFF` on `#52705A` | 5.49:1 | 4.5:1 | pass |
+| light | text on accent wash (selected toggle) | `#2E2A26` on `#E4ECE3` | 11.80:1 | 4.5:1 | pass |
+| light | clay (histogram label) on paper | `#9C5A3C` on `#FFFDF9` | 5.24:1 | 4.5:1 | pass |
+| light | error text on paper | `#A63D32` on `#FFFDF9` | 6.20:1 | 4.5:1 | pass |
+| light | error chip text on its tint | `#A63D32` on `#f4e6e1` | 5.17:1 | 4.5:1 | pass |
+| light | warning text on paper | `#8A5A00` on `#FFFDF9` | 5.83:1 | 4.5:1 | pass |
+| light | warning chip text on its tint | `#8A5A00` on `#f1e9db` | 4.92:1 | 4.5:1 | pass |
+| light | success text on paper | `#3F6E4A` on `#FFFDF9` | 5.84:1 | 4.5:1 | pass |
+| light | success chip text on its tint | `#3F6E4A` on `#e8ece4` | 4.96:1 | 4.5:1 | pass |
+| light | info text on paper | `#3D6278` on `#FFFDF9` | 6.43:1 | 4.5:1 | pass |
+| light | info chip text on its tint | `#3D6278` on `#e8eaea` | 5.41:1 | 4.5:1 | pass |
+| light | control border on paper | `#8F8172` on `#FFFDF9` | 3.72:1 | 3:1 | pass |
+| light | control border on background | `#8F8172` on `#FAF7F2` | 3.54:1 | 3:1 | pass |
+| light | focus ring (accent) on background | `#52705A` on `#FAF7F2` | 5.14:1 | 3:1 | pass |
+| light | focus ring (accent) on paper | `#52705A` on `#FFFDF9` | 5.41:1 | 3:1 | pass |
+| light | chart x line on paper | `#2a78d6` on `#FFFDF9` | 4.35:1 | 3:1 | pass |
+| light | chart y line on paper | `#d0561f` on `#FFFDF9` | 4.11:1 | 3:1 | pass |
+| light | chart suspect mark on paper | `#c4407a` on `#FFFDF9` | 4.74:1 | 3:1 | pass |
+| dark | text on background | `#F3ECE2` on `#1E1915` | 14.86:1 | 4.5:1 | pass |
+| dark | secondary text on background | `#BFB2A3` on `#1E1915` | 8.39:1 | 4.5:1 | pass |
+| dark | accent (links) on background | `#A9C2A9` on `#1E1915` | 9.11:1 | 4.5:1 | pass |
+| dark | text on paper | `#F3ECE2` on `#27211C` | 13.56:1 | 4.5:1 | pass |
+| dark | secondary text on paper | `#BFB2A3` on `#27211C` | 7.66:1 | 4.5:1 | pass |
+| dark | accent (links) on paper | `#A9C2A9` on `#27211C` | 8.31:1 | 4.5:1 | pass |
+| dark | text on subtle | `#F3ECE2` on `#302923` | 12.21:1 | 4.5:1 | pass |
+| dark | secondary text on subtle | `#BFB2A3` on `#302923` | 6.89:1 | 4.5:1 | pass |
+| dark | accent (links) on subtle | `#A9C2A9` on `#302923` | 7.48:1 | 4.5:1 | pass |
+| dark | text on accent (primary button) | `#1E1915` on `#A9C2A9` | 9.11:1 | 4.5:1 | pass |
+| dark | text on accent wash (selected toggle) | `#F3ECE2` on `#34402F` | 9.32:1 | 4.5:1 | pass |
+| dark | clay (histogram label) on paper | `#E0A486` on `#27211C` | 7.44:1 | 4.5:1 | pass |
+| dark | error text on paper | `#F0A399` on `#27211C` | 7.88:1 | 4.5:1 | pass |
+| dark | error chip text on its tint | `#F0A399` on `#4f3b35` | 5.18:1 | 4.5:1 | pass |
+| dark | warning text on paper | `#E8C27A` on `#27211C` | 9.41:1 | 4.5:1 | pass |
+| dark | warning chip text on its tint | `#E8C27A` on `#4e412f` | 5.86:1 | 4.5:1 | pass |
+| dark | success text on paper | `#9CC9A2` on `#27211C` | 8.55:1 | 4.5:1 | pass |
+| dark | success chip text on its tint | `#9CC9A2` on `#3e4337` | 5.47:1 | 4.5:1 | pass |
+| dark | info text on paper | `#9CC0D6` on `#27211C` | 8.27:1 | 4.5:1 | pass |
+| dark | info chip text on its tint | `#9CC0D6` on `#3e4141` | 5.36:1 | 4.5:1 | pass |
+| dark | control border on paper | `#8A7B6C` on `#27211C` | 3.88:1 | 3:1 | pass |
+| dark | control border on background | `#8A7B6C` on `#1E1915` | 4.26:1 | 3:1 | pass |
+| dark | focus ring (accent) on background | `#A9C2A9` on `#1E1915` | 9.11:1 | 3:1 | pass |
+| dark | focus ring (accent) on paper | `#A9C2A9` on `#27211C` | 8.31:1 | 3:1 | pass |
+| dark | chart x line on paper | `#3987e5` on `#27211C` | 4.37:1 | 3:1 | pass |
+| dark | chart y line on paper | `#d95926` on `#27211C` | 4.09:1 | 3:1 | pass |
+| dark | chart suspect mark on paper | `#e87ba4` on `#27211C` | 5.91:1 | 3:1 | pass |
