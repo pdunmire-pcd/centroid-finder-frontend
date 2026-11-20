@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Link, Paper, Typography } from '@mui/material'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import { getProcessingStatus, getThumbnailUrl, getVideoUrl, processVideo } from '../api'
+import { getProcessingStatus, getThumbnailUrl, processVideo } from '../api'
 import { ProcessingControls } from '../components/ProcessingControls'
 import { BinarizedPreview } from '../components/BinarizedPreview'
 
@@ -76,16 +76,10 @@ export default function PreviewPage() {
             Original
           </Typography>
           <Box
-            component="video"
-            src={getVideoUrl(filename)}
-            poster={getThumbnailUrl(filename)}
-            aria-label={`Video ${filename}`}
-            data-cy="original-video"
-            controls
-            muted
-            playsInline
-            preload="metadata"
-            sx={{ width: '100%', display: 'block', bgcolor: 'grey.200' }}
+            component="img"
+            src={getThumbnailUrl(filename)}
+            alt={`First frame of ${filename}`}
+            sx={{ width: '100%', display: 'block' }}
           />
         </Paper>
         <Paper sx={{ p: 2 }}>

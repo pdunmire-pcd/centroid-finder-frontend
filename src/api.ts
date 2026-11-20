@@ -1,7 +1,7 @@
 // One function per backend endpoint. Components call these instead of fetch() directly,
 // so the URLs live in one place and we can swap in mock data with one switch.
 
-import { mockVideoList, mockThumbnailUrl, mockVideoUrl } from './mock/videos'
+import { mockVideoList, mockThumbnailUrl } from './mock/videos'
 import { MOCK_CHECKS_BEFORE_DONE, mockDone, mockProcessing, mockStartJob } from './mock/jobs'
 
 // `npm run dev:mock` loads .env.mock, which sets this to "true"
@@ -50,14 +50,8 @@ export async function getVideos(): Promise<string[]> {
 
 // GET /thumbnail/:filename
 export function getThumbnailUrl(filename: string): string {
-  if (USE_MOCK) return mockThumbnailUrl(filename)
+  if (USE_MOCK) return mockThumbnailUrl
   return `/thumbnail/${encodeURIComponent(filename)}`
-}
-
-// GET /video/:filename -> the video file itself, for <video> playback
-export function getVideoUrl(filename: string): string {
-  if (USE_MOCK) return mockVideoUrl(filename)
-  return `/video/${encodeURIComponent(filename)}`
 }
 
 // POST /process/:filename?targetColor=<hex>&threshold=<int>

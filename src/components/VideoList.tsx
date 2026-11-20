@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Box, Card, CardActionArea, CardContent, CardMedia, Typography } from '@mui/material'
-import type React from 'react'
-import { getThumbnailUrl, getVideoUrl } from '../api'
+import { getThumbnailUrl } from '../api'
 
 type VideoListProps = {
   videos: string[]
@@ -25,26 +24,12 @@ export default function VideoList({ videos }: VideoListProps) {
         <Card key={filename} data-cy="video-card">
           {/* The whole card is a link to the preview page */}
           <CardActionArea component={Link} to={`/preview/${encodeURIComponent(filename)}`}>
-            {/* Shows the thumbnail as a poster, and plays a muted preview on hover */}
             <CardMedia
-              component="video"
-              src={getVideoUrl(filename)}
-              poster={getThumbnailUrl(filename)}
-              aria-label={`Preview of ${filename}`}
-              data-cy="video-preview"
-              muted
-              loop
-              playsInline
-              preload="none"
-              onMouseEnter={(event: React.MouseEvent<HTMLVideoElement>) => {
-                // play() rejects if the browser blocks it; the poster stays visible, which is fine.
-                event.currentTarget.play().catch(() => {})
-              }}
-              onMouseLeave={(event: React.MouseEvent<HTMLVideoElement>) => {
-                event.currentTarget.pause()
-                event.currentTarget.currentTime = 0
-              }}
-              sx={{ height: 150, width: '100%', objectFit: 'cover', bgcolor: 'grey.200', display: 'block' }}
+              component="img"
+              height="150"
+              image={getThumbnailUrl(filename)}
+              alt={`First frame of ${filename}`}
+              sx={{ objectFit: 'cover', bgcolor: 'grey.200' }}
             />
             <CardContent>
               <Typography variant="subtitle1" noWrap title={filename}>
