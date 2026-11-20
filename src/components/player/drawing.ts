@@ -18,9 +18,14 @@ export function binaryToRgba(binary: Uint8Array): Uint8ClampedArray<ArrayBuffer>
   return pixels
 }
 
-/** Draws a red dot with a white outline, sized relative to the canvas. */
-export function drawCentroidDot(ctx: CanvasRenderingContext2D, point: Coordinate) {
-  const radius = Math.max(4, Math.round(ctx.canvas.width / 120))
+/**
+ * Draws a red dot with a white outline, sized relative to the frame.
+ * frameWidth is the width of the image in the units we draw in. On a
+ * high-DPI overlay (useHiDpiCanvas) the canvas has more pixels than the frame,
+ * so pass the frame's width; by default it is the canvas width.
+ */
+export function drawCentroidDot(ctx: CanvasRenderingContext2D, point: Coordinate, frameWidth = ctx.canvas.width) {
+  const radius = Math.max(4, Math.round(frameWidth / 120))
   ctx.beginPath()
   ctx.arc(point.x, point.y, radius, 0, Math.PI * 2)
   ctx.fillStyle = '#ff1744'
@@ -30,10 +35,15 @@ export function drawCentroidDot(ctx: CanvasRenderingContext2D, point: Coordinate
   ctx.stroke()
 }
 
-/** Draws a crosshair (a cross and a ring) centred on a point. */
-export function drawCrosshair(ctx: CanvasRenderingContext2D, point: Coordinate, color = '#ff1744') {
-  const size = Math.max(12, Math.round(ctx.canvas.width / 30))
-  const lineWidth = Math.max(2, Math.round(ctx.canvas.width / 600))
+/** Draws a crosshair (a cross and a ring) centred on a point. frameWidth: see drawCentroidDot. */
+export function drawCrosshair(
+  ctx: CanvasRenderingContext2D,
+  point: Coordinate,
+  color = '#ff1744',
+  frameWidth = ctx.canvas.width,
+) {
+  const size = Math.max(12, Math.round(frameWidth / 30))
+  const lineWidth = Math.max(2, Math.round(frameWidth / 600))
 
   const tracePath = () => {
     ctx.beginPath()

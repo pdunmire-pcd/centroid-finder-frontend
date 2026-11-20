@@ -21,6 +21,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@mui/material": "^9.5.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -33,7 +36,9 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "axe-core": "4.14.0",
     "cypress": "^16.3.0",
+    "cypress-axe": "1.7.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
@@ -43,5 +48,10 @@
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.6",
     "vitest": "^5.1.1"
+  },
+  "overrides": {
+    "cypress-axe": {
+      "cypress": "$cypress"
+    }
   }
 }

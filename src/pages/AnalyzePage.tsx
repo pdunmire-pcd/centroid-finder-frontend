@@ -111,10 +111,10 @@ function OpenLocalVideoPanel({ onFile }: { onFile: (file: File) => void }) {
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 6, textAlign: 'center', borderStyle: 'dashed', borderWidth: 2 }}
+      sx={{ p: { xs: 3, sm: 6 }, textAlign: 'center', borderStyle: 'dashed', borderWidth: 2, borderColor: 'divider' }}
       data-testid="open-local-panel"
     >
-      <Typography variant="h5" component="h1" gutterBottom>
+      <Typography variant="h1" gutterBottom>
         Open a video from your computer
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
@@ -247,7 +247,10 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
 
   return (
     <>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ wordBreak: 'break-word' }}>
+      <Typography variant="overline" color="text.secondary" component="p">
+        Analyze
+      </Typography>
+      <Typography variant="h1" sx={{ overflowWrap: 'anywhere', mb: 3 }}>
         {title}
       </Typography>
       {sizeWarning && (
@@ -258,10 +261,20 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
 
       <AnalyzeViewer src={src} targetColor={targetColor} threshold={threshold} onSnapshot={setSnapshot} />
 
-      <Box sx={{ mt: 3, display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
+      {/* Under the video: settings on the left, checks and color tools on the
+          right. Below 900 px the two columns stack, settings first. */}
+      <Box
+        sx={{
+          mt: { xs: 3, md: 4 },
+          display: 'grid',
+          gap: { xs: 2, md: 3 },
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 5fr) minmax(0, 7fr)' },
+          alignItems: 'start',
+        }}
+      >
         <Box>
           {isLocal && (
-            <Alert severity="info" sx={{ mb: 2, maxWidth: 640 }} data-testid="local-upload-note">
+            <Alert severity="info" sx={{ mb: 2 }} data-testid="local-upload-note">
               This video is on your computer. Processing uploads it to the server first, then the JAR
               tracks every frame. The live preview above works without uploading.
             </Alert>
@@ -269,19 +282,19 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
           {controls}
 
           {statusMessage && (
-            <Alert severity="info" sx={{ mt: 2, maxWidth: 640, width: '100%' }}>
+            <Alert severity="info" role="status" sx={{ mt: 2, width: '100%' }}>
               {statusMessage}
             </Alert>
           )}
           {error && (
-            <Alert severity="error" sx={{ mt: 2, maxWidth: 640, width: '100%' }}>
+            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
               {error}
             </Alert>
           )}
           {csvUrl && (
             <Alert
               severity="success"
-              sx={{ mt: 2, maxWidth: 640, width: '100%' }}
+              sx={{ mt: 2, width: '100%' }}
               action={
                 jobId && (
                   <Button component={RouterLink} to={`/jobs/${encodeURIComponent(jobId)}`} color="inherit" size="small">
@@ -299,8 +312,8 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
         </Box>
 
         <Stack spacing={2} data-testid="analysis-side-panel">
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="h6" component="h2" gutterBottom>
+          <Paper component="section" aria-labelledby="frame-check-title" sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography id="frame-check-title" variant="h2" gutterBottom>
               Frame check
             </Typography>
             <LiveStatsPanel analysis={snapshot?.analysis ?? null} />
@@ -309,8 +322,11 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
             </Box>
           </Paper>
 
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Paper component="section" aria-labelledby="color-tools-title" sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography id="color-tools-title" variant="h2" gutterBottom>
+              Color tools
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Pause the video to sample the animal on the frame shown below.
             </Typography>
             <ColorToolsPanel
@@ -325,13 +341,13 @@ function AnalyzeSession({ source }: { source: VideoSource }) {
           </Paper>
 
           <Accordion variant="outlined" disableGutters>
-            <AccordionSummary expandIcon={<span aria-hidden>▾</span>}>
-              <Typography variant="h6" component="h2">
+            <AccordionSummary expandIcon={<span aria-hidden>▾</span>} sx={{ px: { xs: 2, sm: 3 } }}>
+              <Typography variant="h3" component="h2">
                 How well does this color separate the animal?
               </Typography>
             </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
+            <AccordionDetails sx={{ px: { xs: 2, sm: 3 }, pb: 3 }}>
+              <Stack spacing={3}>
                 <DistanceHistogram frame={snapshot?.image ?? null} targetColor={targetColor} threshold={threshold} />
                 <DistanceMap frame={snapshot?.image ?? null} targetColor={targetColor} threshold={threshold} />
               </Stack>

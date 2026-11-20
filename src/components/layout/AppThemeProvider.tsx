@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CssBaseline, ThemeProvider } from '@mui/material'
+import { CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material'
 import type { PaletteMode } from '@mui/material'
 import { createAppTheme } from '../../theme'
 import { ColorModeContext, initialMode, saveMode } from './colorMode'
@@ -9,8 +9,11 @@ import { ColorModeContext, initialMode, saveMode } from './colorMode'
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<PaletteMode>(initialMode)
 
-  // Only rebuild the theme when the mode changes
-  const theme = useMemo(() => createAppTheme(mode), [mode])
+  // The operating system's "increase contrast" setting (macOS, iOS, Windows)
+  const highContrast = useMediaQuery('(prefers-contrast: more)')
+
+  // Only rebuild the theme when the mode or the contrast setting changes
+  const theme = useMemo(() => createAppTheme(mode, { highContrast }), [mode, highContrast])
 
   const colorMode = useMemo(
     () => ({

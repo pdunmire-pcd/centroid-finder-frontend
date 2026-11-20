@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { parseHexColor, type Group } from '../centroid'
 import { analyzeFrame, ignoreTopMargin, type FrameAnalysis } from '../centroid/engine'
-import { binaryToRgba, drawCentroidDot } from '../components/player/drawing'
+import { binaryToRgba } from '../components/player/drawing'
 
 /** What the hook gives back to the component. */
 export type CentroidFrameResult = {
@@ -74,7 +74,12 @@ export function useCentroidFrame(
   }
 }
 
-/** Draws the black-and-white image and a dot on the biggest group. */
+/**
+ * Draws the black-and-white image, one canvas pixel per analysed pixel.
+ * The red dot on the biggest group is drawn separately by CentroidDotOverlay,
+ * on a sharp high-DPI canvas on top (a dot drawn here would be as blurry as
+ * the frame's own pixels when the canvas is stretched).
+ */
 function drawAnalysis(canvas: HTMLCanvasElement, analysis: FrameAnalysis) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -83,7 +88,4 @@ function drawAnalysis(canvas: HTMLCanvasElement, analysis: FrameAnalysis) {
   canvas.height = analysis.height
   const pixels = binaryToRgba(analysis.binary)
   ctx.putImageData(new ImageData(pixels, analysis.width, analysis.height), 0, 0)
-
-  const biggest = analysis.groups[0]
-  if (biggest) drawCentroidDot(ctx, biggest.centroid)
 }

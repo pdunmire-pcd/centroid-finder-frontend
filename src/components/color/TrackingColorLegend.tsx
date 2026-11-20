@@ -1,4 +1,5 @@
 import { Box, Typography, type SxProps, type Theme } from '@mui/material'
+import { monoFontFamily } from '../../theme'
 import { ColorSwatch } from './ColorSwatch'
 import { formatRgb, hexToRgb } from './colorUtils'
 
@@ -46,7 +47,7 @@ export function TrackingColorLegend({ targetColor, threshold, sx }: TrackingColo
       ]}
     >
       <ColorSwatch color={targetColor} size={16} />
-      <Typography variant="caption" sx={{ fontFamily: 'monospace', lineHeight: 1.2 }}>
+      <Typography variant="caption" sx={{ fontFamily: monoFontFamily, lineHeight: 1.2 }}>
         {targetColor} · {rgbText} · threshold {threshold}
       </Typography>
     </Box>

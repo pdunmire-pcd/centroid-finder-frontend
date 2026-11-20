@@ -45,9 +45,9 @@ export function ProcessingControls({
   }, [threshold, onThresholdChange])
 
   return (
-    <Card sx={{ maxWidth: 640, width: '100%' }}>
-      <CardContent>
-        <Typography variant="h5" component="h2" gutterBottom>
+    <Card sx={{ width: '100%' }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h2" gutterBottom>
           Processing Settings
         </Typography>
 
@@ -60,7 +60,7 @@ export function ProcessingControls({
             <Typography id="threshold-label" gutterBottom>
               Threshold: {threshold}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 2, sm: 3 }, pb: 1 }}>
               <Slider
                 aria-labelledby="threshold-label"
                 value={threshold}
@@ -71,7 +71,12 @@ export function ProcessingControls({
                 max={MAX_THRESHOLD}
                 marks={THRESHOLD_MARKS}
                 valueLabelDisplay="auto"
-                sx={{ mx: 4 }} // room for the end labels
+                sx={{
+                  mx: 1,
+                  // keep the two end labels inside the slider's box (no overflow on phones)
+                  '& .MuiSlider-markLabel[data-index="0"]': { transform: 'translateX(-8px)' },
+                  '& .MuiSlider-markLabel[data-index="1"]': { transform: 'translateX(calc(-100% + 8px))' },
+                }}
               />
               <TextField
                 label="Threshold"
@@ -89,7 +94,7 @@ export function ProcessingControls({
                 sx={{ width: 110, flexShrink: 0 }}
               />
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               A pixel is tracked when its color distance to the target is less than the threshold.
             </Typography>
           </Box>

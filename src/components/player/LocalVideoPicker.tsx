@@ -1,4 +1,4 @@
-import { Box, Button, Typography, type ButtonProps } from '@mui/material'
+import { alpha, Box, Button, Typography, type ButtonProps } from '@mui/material'
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 
 export type LocalVideoPickerProps = {
@@ -79,12 +79,12 @@ export function VideoDropZone({ onFile, children }: VideoDropZoneProps) {
             border: '3px dashed',
             borderColor: 'primary.main',
             borderRadius: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.85)',
+            bgcolor: (theme) => alpha(theme.palette.background.paper, 0.9), // works in both modes
             pointerEvents: 'none', // let the drop reach the zone underneath
             zIndex: 1,
           }}
         >
-          <Typography variant="h5" color="primary">
+          <Typography variant="h2" component="p" color="primary">
             Drop the video to open it
           </Typography>
         </Box>

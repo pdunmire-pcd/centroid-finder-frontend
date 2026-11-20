@@ -1,5 +1,6 @@
 import { Box, Button, Typography } from '@mui/material'
 import { useState } from 'react'
+import { monoFontFamily } from '../../theme'
 import { buildProcessRequest } from './colorUtils'
 
 export type RequestPreviewProps = {
@@ -38,9 +39,13 @@ export function RequestPreview({ filename, targetColor, threshold }: RequestPrev
           sx={{
             flex: 1,
             minWidth: 0,
-            p: 1,
-            borderRadius: 1,
-            bgcolor: 'grey.100',
+            px: 1.5,
+            py: 1,
+            borderRadius: 1.5 / 1.75, // about 12 px
+            bgcolor: 'action.hover',
+            border: 1,
+            borderColor: 'divider',
+            fontFamily: monoFontFamily,
             fontSize: 13,
             overflowWrap: 'anywhere',
           }}

@@ -19,12 +19,28 @@ function mountCanvas(onPointClick?: (point: TrackPoint) => void) {
   )
 }
 
-/** Alpha (0-255) of one canvas pixel. */
+/**
+ * Alpha (0-255) at a point given in *video* pixels (the 200x100 coordinates).
+ * The canvas draws at the screen's devicePixelRatio, so it has more real
+ * pixels than the video; scale the point to the backing store first.
+ */
 function alphaAt(canvas: HTMLCanvasElement, x: number, y: number): number {
-  return canvas.getContext('2d')!.getImageData(x, y, 1, 1).data[3]
+  const bx = Math.floor((x * canvas.width) / 200)
+  const by = Math.floor((y * canvas.height) / 100)
+  return canvas.getContext('2d')!.getImageData(bx, by, 1, 1).data[3]
 }
 
 describe('<TrajectoryCanvas />', () => {
+  it('has a backing store of its CSS size x devicePixelRatio, for sharp lines', () => {
+    mountCanvas()
+    cy.window().then((win) => {
+      const dpr = Math.max(1, win.devicePixelRatio)
+      cy.get<HTMLCanvasElement>('[data-testid="trajectory-canvas"]')
+        .should('have.prop', 'width', Math.round(400 * dpr))
+        .and('have.prop', 'height', Math.round(200 * dpr))
+    })
+  })
+
   it('fades older parts of the trail', () => {
     mountCanvas()
     cy.get<HTMLCanvasElement>('[data-testid="trajectory-canvas"]').should(($canvas) => {

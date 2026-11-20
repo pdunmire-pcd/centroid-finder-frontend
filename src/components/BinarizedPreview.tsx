@@ -1,6 +1,7 @@
 import { Alert, Box, CircularProgress, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useCentroidFrame } from '../hooks/useCentroidFrame'
+import { CentroidDotOverlay } from './player/CentroidDotOverlay'
 
 export type BinarizedPreviewProps = {
   /** URL of the frame to binarize, e.g. `/thumbnail/${filename}` */
@@ -72,7 +73,7 @@ export function BinarizedPreview({
 
   // 2. Re-binarize whenever the image, color or threshold changes.
   //    The shared hook does the work and draws on the canvas we give it.
-  const { canvasRef, largest } = useCentroidFrame(source, targetColor, threshold)
+  const { canvasRef, analysis, largest } = useCentroidFrame(source, targetColor, threshold)
 
   if (loadError) {
     return <Alert severity="error">{loadError}</Alert>
@@ -87,7 +88,7 @@ export function BinarizedPreview({
               aspectRatio: '16 / 9',
               display: 'grid',
               placeItems: 'center',
-              bgcolor: 'grey.200',
+              bgcolor: 'action.hover',
               borderRadius: 1,
             }}
           >
@@ -97,14 +98,20 @@ export function BinarizedPreview({
         <canvas
           ref={canvasRef}
           data-testid="binarized-canvas"
-          aria-label="Binarized preview"
+          role="img"
+          aria-label="Binarized preview: white pixels match the tracking color"
           style={{
             display: source ? 'block' : 'none',
             width: '100%',
             height: 'auto',
             borderRadius: 4,
+            imageRendering: 'pixelated', // crisp analysed pixels when stretched
           }}
         />
+        {/* the red dot on the biggest group, on a sharp high-DPI canvas */}
+        {source && analysis && (
+          <CentroidDotOverlay width={analysis.width} height={analysis.height} point={largest?.centroid ?? null} />
+        )}
       </Box>
 
       <Typography

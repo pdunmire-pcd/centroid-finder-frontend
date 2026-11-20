@@ -71,8 +71,9 @@ export const PositionChart = memo(function PositionChart({
     <Box data-cy="position-chart">
       {/* Our own legend (HTML), so it can include the band and marker styles */}
       <Stack direction="row" sx={{ flexWrap: 'wrap', columnGap: 2.5, rowGap: 0.5, mb: 1 }} aria-hidden="true">
-        <LegendItem label="x (px)" swatch={<Box sx={{ width: 16, height: 2, bgcolor: colors.x }} />} />
-        <LegendItem label="y (px)" swatch={<Box sx={{ width: 16, height: 2, bgcolor: colors.y }} />} />
+        {/* x is a solid line and y a dashed one, so they differ by more than color */}
+        <LegendItem label="x (px), solid" swatch={<Box sx={{ width: 18, height: 0, borderTop: `2.5px solid ${colors.x}` }} />} />
+        <LegendItem label="y (px), dashed" swatch={<Box sx={{ width: 18, height: 0, borderTop: `2.5px dashed ${colors.y}` }} />} />
         <LegendItem label="No match" swatch={<Box sx={{ width: 12, height: 12, bgcolor: 'action.selected' }} />} />
         <LegendItem
           label={`Suspect jump (${suspectIndexes.length})`}
@@ -84,7 +85,7 @@ export const PositionChart = memo(function PositionChart({
       {/* The label describes the chart for screen readers; the table below has the data */}
       <Box
         role="group"
-        aria-label={`Chart of x and y position over ${formatSeconds(points.at(-1)?.seconds ?? 0)}. Click to jump the video to a time.`}
+        aria-label={`Chart of x and y position over ${formatSeconds(points.at(-1)?.seconds ?? 0)}. Click to jump the video to a time. The CSV data table below has the same numbers and works with the keyboard.`}
         sx={{ cursor: 'crosshair', '& .recharts-surface:focus': { outline: 'none' } }}
       >
         <ResponsiveContainer width="100%" height={height}>
@@ -125,7 +126,7 @@ export const PositionChart = memo(function PositionChart({
 
             {/* connectNulls={false}: a null row (no match) leaves a gap in the line */}
             <Line dataKey="x" name="x" stroke={colors.x} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
-            <Line dataKey="y" name="y" stroke={colors.y} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+            <Line dataKey="y" name="y" stroke={colors.y} strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls={false} isAnimationActive={false} />
 
             <ReferenceLine x={currentTime} stroke={theme.palette.text.primary} strokeWidth={1.5} ifOverflow="hidden" />
 
@@ -135,8 +136,9 @@ export const PositionChart = memo(function PositionChart({
               contentStyle={{
                 background: theme.palette.background.paper,
                 border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 6,
+                borderRadius: 10,
                 fontSize: 12,
+                color: theme.palette.text.primary,
               }}
             />
           </ComposedChart>

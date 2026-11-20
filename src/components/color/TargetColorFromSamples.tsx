@@ -1,6 +1,7 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { summarizeSamples } from '../../centroid/engine'
 import type { ColorSample } from '../../types'
+import { monoFontFamily } from '../../theme'
 import { ColorSwatch } from './ColorSwatch'
 import { describeSpread, formatHex, formatRgb } from './colorUtils'
 
@@ -35,10 +36,10 @@ export function TargetColorFromSamples({ samples, targetColor, onUseColor }: Tar
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <ColorSwatch color={meanHex} size={36} />
         <Box>
-          <Typography variant="body1" sx={{ fontFamily: 'monospace' }} data-testid="mean-color">
+          <Typography variant="body1" sx={{ fontFamily: monoFontFamily }} data-testid="mean-color">
             {meanHex}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: monoFontFamily }}>
             {formatRgb(summary.mean)}
           </Typography>
         </Box>

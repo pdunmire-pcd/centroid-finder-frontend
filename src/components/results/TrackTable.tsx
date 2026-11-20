@@ -10,7 +10,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TablePagination,
   TableRow,
@@ -20,6 +19,7 @@ import {
 import { alpha } from '@mui/material/styles'
 import type { TrackPoint } from '../../types'
 import { chartSeriesColors, monoFontFamily } from '../../theme'
+import { ScrollableTable } from '../shared/ScrollableTable'
 import { buildTableRows, pageForFrame } from './trackData'
 
 const ROWS_PER_PAGE = 25
@@ -70,7 +70,7 @@ export function TrackTable({ points, suspectIndexes, currentIndex, onSeek }: Tra
             row to jump the video there
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <FormControlLabel
             control={
               <Switch
@@ -93,8 +93,8 @@ export function TrackTable({ points, suspectIndexes, currentIndex, onSeek }: Tra
         </Stack>
       </Stack>
 
-      <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
-        <Table size="small" aria-label="Tracked positions, one row per frame">
+      <ScrollableTable label="CSV data table" hintBelow="sm" card={false}>
+        <Table size="small" aria-label="Tracked positions, one row per frame" sx={{ minWidth: 440 }}>
           <TableHead>
             <TableRow>
               <TableCell align="right">Frame</TableCell>
@@ -159,7 +159,7 @@ export function TrackTable({ points, suspectIndexes, currentIndex, onSeek }: Tra
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </ScrollableTable>
       <TablePagination
         component="div"
         count={rows.length}
