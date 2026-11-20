@@ -5,6 +5,9 @@ import { useCentroidFrame } from '../../hooks/useCentroidFrame'
 import { useVideoFrames } from '../../hooks/useVideoFrames'
 import type { TrackPoint } from '../../types'
 import { TrajectoryCanvas } from '../shared/TrajectoryCanvas'
+import { monoFontFamily } from '../../theme'
+import { contrastingMarkerColor } from '../color/colorUtils'
+import { CentroidDotOverlay } from './CentroidDotOverlay'
 import { CrosshairOverlay } from './CrosshairOverlay'
 import { addTrackPoint, toTrackPoint } from './trackPoints'
 import { describeFrameRates, useFrameRates } from './useFrameRates'
@@ -93,7 +96,7 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
 
   // The top margin is in video pixels, so convert it to the downscaled frame's pixels.
   const topMargin = frame ? TOP_MARGIN * frame.scale : 0
-  const { canvasRef, largest } = useCentroidFrame(frame?.image ?? null, targetColor, threshold, recordPoint, topMargin)
+  const { canvasRef, analysis, largest } = useCentroidFrame(frame?.image ?? null, targetColor, threshold, recordPoint, topMargin)
 
   // The current centroid in full video pixels, for the crosshair and the text.
   const current = frame && largest ? toTrackPoint(largest.centroid, frame.time, frame.scale) : null
@@ -105,17 +108,34 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
 
   // One canvas element for the black-and-white image. Where it goes depends
   // on the view mode; when it moves, useCentroidFrame draws on the new one.
+  // The canvas holds exactly one pixel per analysed pixel (that is what the
+  // tracker sees), and `image-rendering: pixelated` shows those pixels as
+  // crisp squares when the canvas is stretched, instead of a blurry mask.
+  // The centroid dot sits on its own sharp high-DPI canvas on top.
   const binarizedCanvas = (
-    <canvas
-      ref={canvasRef}
-      data-testid="binarized-canvas"
-      aria-label="Binarized video frame"
-      style={
+    <Box
+      sx={
         viewMode === 'binarized'
-          ? { position: 'absolute', inset: 0, width: '100%', height: '100%' } // covers the video
-          : { display: 'block', width: '100%', height: 'auto', borderRadius: 4, background: '#000' }
+          ? { position: 'absolute', inset: 0 } // covers the video
+          : { position: 'relative', lineHeight: 0, borderRadius: 1, overflow: 'hidden', bgcolor: '#000' }
       }
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        data-testid="binarized-canvas"
+        role="img"
+        aria-label="Binarized video frame: white pixels match the tracking color"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: viewMode === 'binarized' ? '100%' : 'auto',
+          imageRendering: 'pixelated',
+        }}
+      />
+      {analysis && (
+        <CentroidDotOverlay width={analysis.width} height={analysis.height} point={largest?.centroid ?? null} />
+      )}
+    </Box>
   )
 
   const overlays = frame && (
@@ -128,7 +148,12 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
         currentTime={frame.time}
         onPointClick={seekToPoint}
       />
-      <CrosshairOverlay width={frame.videoWidth} height={frame.videoHeight} point={current} />
+      <CrosshairOverlay
+        width={frame.videoWidth}
+        height={frame.videoHeight}
+        point={current}
+        color={contrastingMarkerColor(targetColor)}
+      />
     </>
   )
 
@@ -153,15 +178,17 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
       <Box
         sx={{
           display: 'grid',
-          gap: 2,
-          // minmax(0, 1fr) lets a column shrink below the video's natural width
+          gap: { xs: 2, md: 3 },
+          // One column on phones and tablets; two equal columns from 900 px.
+          // minmax(0, 1fr) lets a column shrink below the video's natural width.
           gridTemplateColumns: { xs: '1fr', md: sideBySide ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr)' },
+          alignItems: 'start',
         }}
       >
         {/* The player is always the first child, so React keeps the same
             <video> when the mode changes and playback is not interrupted. */}
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
+        <Paper component="section" aria-labelledby="viewer-original-title" sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          <Typography id="viewer-original-title" variant="overline" component="h2" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             {viewMode === 'binarized' ? 'Binarized' : 'Original'}
           </Typography>
           <VideoPlayer src={src} onVideoElement={setVideo}>
@@ -169,8 +196,8 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
           </VideoPlayer>
         </Paper>
         {sideBySide && (
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper component="section" aria-labelledby="viewer-binarized-title" sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+            <Typography id="viewer-binarized-title" variant="overline" component="h2" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
               Binarized
             </Typography>
             {binarizedCanvas}
@@ -179,7 +206,12 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
       </Box>
 
       <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-        <Typography variant="body2" color="text.secondary" data-testid="centroid-info">
+        <Typography
+          variant="body2"
+          sx={{ fontFamily: monoFontFamily }}
+          data-testid="centroid-info"
+          aria-live="off" // changes many times a second while playing: too often to read aloud
+        >
           {!frame
             ? 'Loading video…'
             : current && largest
@@ -188,7 +220,7 @@ export function AnalyzeViewer({ src, targetColor, threshold, onSnapshot }: Analy
         </Typography>
         {frameRates && (
           <Tooltip title="The computer can't analyse every frame, so some are skipped. The trail has fewer points, but the server's CSV will still have every frame.">
-            <Chip size="small" color="warning" variant="outlined" label={frameRates} data-testid="frame-rates" />
+            <Chip size="small" color="warning" variant="outlined" label={frameRates} data-testid="frame-rates" tabIndex={0} />
           </Tooltip>
         )}
         <Typography variant="body2" color="text.secondary" data-testid="trail-info">

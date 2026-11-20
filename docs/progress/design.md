@@ -117,3 +117,84 @@ almost no one-off styles.
 
 **Checked:** tsc, lint, unit tests (contrast test included) and build on this
 commit alone.
+
+## Step 2: sharp canvases on high-DPI screens — done
+
+**Problem:** a `<canvas>` has a CSS size (how big it looks) and a backing
+store (`canvas.width/height`, how many real pixels it has). The overlays used
+the *video's* pixel size as the backing store, so on a 2x Retina screen a
+small video's trajectory, crosshair and dots were stretched and blurry (and
+for a big video the canvas had many more pixels than needed).
+
+**The pattern** (`src/components/shared/hiDpi.ts` + `src/hooks/useHiDpiCanvas.ts`):
+
+1. A `ResizeObserver` measures the canvas's CSS size; `window.devicePixelRatio`
+   is read again on every `resize` (browser zoom and moving to another
+   monitor fire it).
+2. `backingStoreSize(cssW, cssH, dpr)` = CSS size × DPR, rounded, at least 1x,
+   capped at 4096 px per side (keeps the shape).
+3. `fitCanvas()` sets that size and
+   `ctx.setTransform(backingW / videoW, 0, 0, backingH / videoH, 0, 0)`.
+   From then on the drawing code still draws in **video pixels**, so the
+   centroid maths is untouched.
+4. Clicks go the other way with `screenToLogical()`, which only uses
+   `getBoundingClientRect()` (the size on screen) and the video size. The
+   backing store never enters the click maths, so it is the same on every
+   screen.
+5. The hook returns `prepare()`; it changes whenever size or DPR change, so
+   each overlay's draw effect (`useEffect(() => { const ctx = prepare(); ... }, [prepare, ...])`)
+   redraws automatically.
+
+**Where:**
+
+- `TrajectoryCanvas` (Analyze and Job results) and `CrosshairOverlay`: drawn
+  at DPR. Line widths and dot sizes are still computed from the video width,
+  so they look the same size as before, only sharper. `drawCrosshair` and
+  `drawCentroidDot` take an optional `frameWidth` for that (default: the
+  canvas width, as before).
+- **Raster canvases** (binarized frame, distance map, the sampler's frame)
+  show *image data*: one canvas pixel per analysed pixel. Making them bigger
+  would add no detail, and their exact pixels are what the tests and the
+  sampler read. They keep their size and get `image-rendering: pixelated`, so
+  each analysed pixel is a crisp square instead of a blur when stretched.
+  Everything *vector* that used to be painted into them now sits on its own
+  DPR overlay on top: the red centroid dot (`CentroidDotOverlay`, used by
+  `AnalyzeViewer` and `BinarizedPreview`) and the sampler's squares and
+  keyboard cursor (`sampler-markers`). The overlays have
+  `pointer-events: none`, so clicks still reach the canvas below and still map
+  with `clientToPixel`.
+- `DistanceHistogram` is SVG, so already resolution-independent; the bars got
+  `shape-rendering: crispEdges`, and the threshold line is now dashed so it
+  doesn't rely on color alone.
+- The crosshair now uses the existing `contrastingMarkerColor(targetColor)`
+  (cyan for the dark-red salamander on the pink floor) instead of a fixed red
+  that disappeared on that floor; its dark outline is unchanged. The
+  trajectory keeps its cyan line + dot; the crosshair is a cross + ring, so the
+  two differ by shape, not only color.
+- A11y bits that live in these files: the view-mode panel titles are now
+  `h2` headings (they were `h6` straight after the `h1`), the binarized canvas
+  is `role="img"` with a description, the overlays are `aria-hidden` (the same
+  information is in the text readouts), the sample-size buttons' names start
+  with their visible text ("5×5 pixels"), and the "Samples" heading is an
+  `h4` under its `h3` section.
+
+**Tests:** `tests/player/hiDpi.test.ts` (8 unit tests: backing store size,
+rounding, the 1x floor and the cap; a video pixel maps to the right backing
+pixel; a click maps to the same video pixel at DPR 1, 2 and 3 and drawing at
+it lands under the cursor; agreement with `clientToPixel`). Changed:
+`TrajectoryCanvas.cy.tsx` reads pixels through the backing-store scale and
+checks the backing store is CSS size × DPR; `jobs.cy.ts` checked the results
+canvas was 1920 px wide, now it checks CSS width × DPR and the video's 16:9
+shape; new `ColorSampler.cy.tsx` test: the frame canvas stays 20 px (exact
+colors) while the marker canvas is 400 × DPR and draws the square in the
+right place.
+
+**Files:** `src/components/shared/hiDpi.ts`, `src/hooks/useHiDpiCanvas.ts`,
+`src/components/player/CentroidDotOverlay.tsx`, `CrosshairOverlay.tsx`,
+`drawing.ts`, `AnalyzeViewer.tsx`, `src/components/shared/TrajectoryCanvas.tsx`,
+`src/hooks/useCentroidFrame.ts`, `src/components/BinarizedPreview.tsx`,
+`src/components/color/ColorSampler.tsx`, `DistanceMap.tsx`,
+`DistanceHistogram.tsx`, and the tests above.
+
+**Checked:** tsc, lint, unit tests, build, Cypress component tests and E2E
+tests on this commit.

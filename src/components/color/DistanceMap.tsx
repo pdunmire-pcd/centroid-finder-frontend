@@ -57,7 +57,8 @@ export function DistanceMap({ frame, targetColor, threshold }: DistanceMapProps)
         data-testid="distance-map"
         role="img"
         aria-label="Distance map: brighter pixels are closer to the target color"
-        style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 4 }}
+        // pixelated: each analysed pixel stays a crisp square when the map is stretched
+        style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 10, imageRendering: 'pixelated' }}
       />
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
         White = exactly the target color. Orange = right at the threshold. Black = twice the threshold or

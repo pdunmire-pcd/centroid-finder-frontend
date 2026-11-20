@@ -60,6 +60,8 @@ export function DistanceHistogram({ frame, targetColor, threshold, bins = 100 }:
         role="img"
         aria-label={`Histogram of color distances. About ${percent.toFixed(1)}% of pixels are closer than the threshold ${threshold}.`}
         data-testid="distance-histogram"
+        // crisp bar edges at any zoom or screen density (SVG is already resolution-independent)
+        shapeRendering="crispEdges"
       >
         {heights.map((height, i) => (
           <rect
@@ -69,7 +71,8 @@ export function DistanceHistogram({ frame, targetColor, threshold, bins = 100 }:
             width={Math.max(0.5, barWidth - 0.5)}
             height={height * plotHeight}
             // bars that fall under the threshold are the tracked pixels
-            fill={(i + 1) * (MAX_DISTANCE / bins) <= threshold ? theme.palette.primary.main : theme.palette.grey[400]}
+            fill={(i + 1) * (MAX_DISTANCE / bins) <= threshold ? theme.palette.primary.main : theme.palette.text.secondary}
+            fillOpacity={(i + 1) * (MAX_DISTANCE / bins) <= threshold ? 1 : 0.4}
           />
         ))}
 
@@ -82,6 +85,8 @@ export function DistanceHistogram({ frame, targetColor, threshold, bins = 100 }:
           y2={plotHeight}
           stroke={theme.palette.secondary.main}
           strokeWidth={2}
+          strokeDasharray="4 3" // dashed, so the line doesn't rely on color alone
+          shapeRendering="geometricPrecision"
         />
 
         <text x={0} y={HEIGHT - 3} fontSize={10} fill={theme.palette.text.secondary}>
@@ -94,7 +99,7 @@ export function DistanceHistogram({ frame, targetColor, threshold, bins = 100 }:
           x={Math.min(thresholdX + 3, WIDTH - 60)}
           y={10}
           fontSize={10}
-          fill={theme.palette.secondary.dark}
+          fill={theme.palette.secondary.main}
         >
           threshold {threshold}
         </text>

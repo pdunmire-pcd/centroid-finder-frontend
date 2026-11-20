@@ -88,4 +88,32 @@ describe('<ColorSampler />', () => {
 
     cy.get('[data-testid="sample-row"]').should('contain', '(8, 10)')
   })
+
+  it('keeps the frame at its own pixel size and draws the markers sharp on top', () => {
+    cy.mount(<Harness frame={makeFrame()} onChange={() => {}} />)
+    cy.contains('button', '1×1').click()
+    cy.get('[data-testid="sampler-canvas"]').click(110, 110) // pixel (5, 5)
+
+    // the frame: exactly one canvas pixel per frame pixel, so sampled colors are exact
+    cy.get('[data-testid="sampler-canvas"]').should('have.prop', 'width', 20)
+    // the markers: shown 400 CSS px wide, so 400 x devicePixelRatio real pixels
+    cy.window().then((win) => {
+      const dpr = Math.max(1, win.devicePixelRatio)
+      cy.get<HTMLCanvasElement>('[data-testid="sampler-markers"]')
+        .should('have.prop', 'width', Math.round(400 * dpr))
+        .then(($canvas) => {
+          // The square around the sample at frame pixel (5, 5) is drawn in
+          // frame pixels and scaled up: the row through the middle of that
+          // pixel crosses its outline, and a far corner stays empty.
+          const ctx = $canvas[0].getContext('2d')!
+          const scale = $canvas[0].width / 20
+          const corner = ctx.getImageData(Math.floor(18 * scale), Math.floor(18 * scale), 1, 1).data[3]
+          expect(corner).to.equal(0)
+          let drawn = 0
+          const row = ctx.getImageData(0, Math.floor(5.5 * scale), $canvas[0].width, 1).data
+          for (let i = 3; i < row.length; i += 4) if (row[i] > 0) drawn++
+          expect(drawn).to.be.greaterThan(0)
+        })
+    })
+  })
 })

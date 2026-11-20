@@ -9,6 +9,8 @@ import {
 } from '@mui/material'
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { sampleRegion } from '../../centroid/engine'
+import { useHiDpiCanvas } from '../../hooks/useHiDpiCanvas'
+import { monoFontFamily } from '../../theme'
 import type { ColorSample } from '../../types'
 import { ColorSwatch } from './ColorSwatch'
 import {
@@ -65,15 +67,25 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
   // Keyboard cursor: only shown while the canvas has focus.
   const [cursor, setCursor] = useState<Pixel | null>(null)
 
-  // Redraw the frame plus the markers whenever something visible changes.
+  // Two layers: the frame itself, one canvas pixel per frame pixel (so the
+  // colors we show are exactly the colors we sample), and on top a sharp
+  // high-DPI canvas with the sample squares and the keyboard cursor.
+  const { canvasRef: markersRef, prepare: prepareMarkers } = useHiDpiCanvas(frame?.width ?? 0, frame?.height ?? 0)
+
+  // Draw the frame whenever it changes.
   useEffect(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !frame) return
-
     canvas.width = frame.width
     canvas.height = frame.height
     ctx.putImageData(frame, 0, 0)
+  }, [frame])
+
+  // Redraw the markers whenever something visible changes.
+  useEffect(() => {
+    const ctx = prepareMarkers() // cleared and scaled, so we draw in frame pixels
+    if (!ctx || !frame) return
 
     // Line width grows with the frame so markers look the same on any size.
     const lineWidth = Math.max(1, Math.round(frame.width / 400))
@@ -82,7 +94,7 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
       .forEach((sample) => drawSquare(ctx, sample, sample.size, lineWidth))
 
     if (cursor) drawSquare(ctx, cursor, size, lineWidth)
-  }, [frame, samples, currentTime, cursor, size])
+  }, [prepareMarkers, frame, samples, currentTime, cursor, size])
 
   function addSample(pixel: Pixel) {
     if (!frame) return
@@ -159,7 +171,7 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
           }}
         >
           {SAMPLE_SIZES.map((option) => (
-            <ToggleButton key={option} value={option} aria-label={`${option} by ${option} pixels`}>
+            <ToggleButton key={option} value={option} aria-label={`${option}×${option} pixels`}>
               {option}×{option}
             </ToggleButton>
           ))}
@@ -167,26 +179,42 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
       </Box>
 
       {frame ? (
-        <canvas
-          ref={canvasRef}
-          data-testid="sampler-canvas"
-          tabIndex={0}
-          aria-label="Frame to sample. Click the object to take a color sample. With the keyboard, use the arrow keys to move the square and Enter to sample."
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          onFocus={() =>
-            setCursor((old) => old ?? { x: Math.floor(frame.width / 2), y: Math.floor(frame.height / 2) })
-          }
-          onBlur={() => setCursor(null)}
-          style={{ display: 'block', width: '100%', height: 'auto', cursor: 'crosshair', borderRadius: 4 }}
-        />
+        <Box sx={{ position: 'relative', lineHeight: 0 }}>
+          <canvas
+            ref={canvasRef}
+            data-testid="sampler-canvas"
+            tabIndex={0}
+            aria-label="Frame to sample. Click the object to take a color sample. With the keyboard, use the arrow keys to move the square and Enter to sample."
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
+            onFocus={() =>
+              setCursor((old) => old ?? { x: Math.floor(frame.width / 2), y: Math.floor(frame.height / 2) })
+            }
+            onBlur={() => setCursor(null)}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: 'auto',
+              cursor: 'crosshair',
+              borderRadius: 10,
+              imageRendering: 'pixelated', // show real frame pixels: you sample pixels, not a blur
+            }}
+          />
+          <canvas
+            ref={markersRef}
+            data-testid="sampler-markers"
+            aria-hidden="true"
+            // clicks go through to the frame canvas underneath
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+          />
+        </Box>
       ) : (
-        <Box sx={{ aspectRatio: '16 / 9', display: 'grid', placeItems: 'center', bgcolor: 'grey.200', borderRadius: 1 }}>
+        <Box sx={{ aspectRatio: '16 / 9', display: 'grid', placeItems: 'center', bgcolor: 'action.hover', borderRadius: 1 }}>
           <Typography color="text.secondary">Waiting for a frame…</Typography>
         </Box>
       )}
 
-      <Typography variant="subtitle2" sx={{ mt: 2 }}>
+      <Typography variant="subtitle2" component="h4" sx={{ mt: 2 }}>
         Samples ({samples.length})
       </Typography>
       {samples.length === 0 ? (
@@ -207,7 +235,7 @@ export function ColorSampler({ frame, currentTime, samples, onSamplesChange }: C
               }
             >
               <ColorSwatch color={formatHex(sample.rgb)} />
-              <Typography variant="body2" data-testid="sample-row" sx={{ fontFamily: 'monospace', ml: 1.5 }}>
+              <Typography variant="body2" data-testid="sample-row" sx={{ fontFamily: monoFontFamily, ml: 1.5, overflowWrap: 'anywhere' }}>
                 {formatHex(sample.rgb)} · {formatRgb(sample.rgb)} · {formatSeconds(sample.seconds)} · ({sample.x},{' '}
                 {sample.y}) · {sample.size}×{sample.size}
               </Typography>

@@ -1,5 +1,7 @@
-import { useEffect, useRef, type MouseEvent } from 'react'
+import { useEffect, type MouseEvent } from 'react'
+import { useHiDpiCanvas } from '../../hooks/useHiDpiCanvas'
 import type { TrackPoint } from '../../types'
+import { screenToLogical } from './hiDpi'
 import { findNearestPoint, isNoMatch, MAX_GAP_SECONDS, trailOpacity } from '../player/trackPoints'
 
 // Shared overlay: draws a trajectory and the current centroid on a transparent
@@ -10,6 +12,8 @@ import { findNearestPoint, isNoMatch, MAX_GAP_SECONDS, trailOpacity } from '../p
 // - The line breaks at no-match points (-1, -1) and at big jumps in time.
 // - With `onPointClick`, clicking near a point reports it (e.g. to seek there).
 //   Without it the canvas lets clicks pass through to whatever is underneath.
+// - It is drawn at the screen's devicePixelRatio (useHiDpiCanvas), so lines
+//   stay sharp on Retina screens, while all the maths stays in video pixels.
 
 export type TrajectoryCanvasProps = {
   /** size of the video in pixels, so coordinates line up */
@@ -37,17 +41,14 @@ export function TrajectoryCanvas({
   color = '#00e5ff',
   onPointClick,
 }: TrajectoryCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { canvasRef, prepare } = useHiDpiCanvas(width, height)
 
   const from = trailSeconds === undefined ? -Infinity : currentTime - trailSeconds
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-    canvas.width = width
-    canvas.height = height
-    ctx.clearRect(0, 0, width, height)
+    // Sized, cleared and scaled: from here on we draw in video pixels.
+    const ctx = prepare()
+    if (!ctx) return
 
     const visible = points.filter((p) => p.seconds >= from && p.seconds <= currentTime)
     if (visible.length === 0) return
@@ -82,16 +83,17 @@ export function TrajectoryCanvas({
       ctx.fillStyle = color
       ctx.fill()
     }
-  }, [width, height, points, currentTime, from, trailSeconds, color])
+  }, [prepare, width, points, currentTime, from, trailSeconds, color])
 
   const handleClick = (event: MouseEvent<HTMLCanvasElement>) => {
     if (!onPointClick) return
     // The canvas is stretched to fit the page, so turn the click position
     // (screen pixels) into video pixels first.
+    // (This uses the size on screen, not canvas.width, so it doesn't matter
+    // how many device pixels the canvas has.)
     const rect = event.currentTarget.getBoundingClientRect()
+    const { x, y } = screenToLogical(event.clientX - rect.left, event.clientY - rect.top, rect, { width, height })
     const pixelsPerScreenPixel = width / rect.width
-    const x = (event.clientX - rect.left) * pixelsPerScreenPixel
-    const y = (event.clientY - rect.top) * pixelsPerScreenPixel
 
     const visible = points.filter((p) => p.seconds >= from && p.seconds <= currentTime)
     const point = findNearestPoint(visible, x, y, CLICK_RADIUS_PX * pixelsPerScreenPixel)
@@ -102,6 +104,8 @@ export function TrajectoryCanvas({
     <canvas
       ref={canvasRef}
       data-testid="trajectory-canvas"
+      // decorative for screen readers: the same path is in the table / the text readout
+      aria-hidden="true"
       onClick={handleClick}
       style={{
         position: 'absolute',

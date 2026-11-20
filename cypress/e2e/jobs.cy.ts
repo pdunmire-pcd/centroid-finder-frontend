@@ -73,7 +73,17 @@ describe('job results page', () => {
     cy.contains('#ff4500')
     cy.get('[data-cy="job-steps"]').should('contain', 'Results ready')
     cy.get('[data-cy="results-video"]').should('be.visible')
-    cy.get('[data-testid="trajectory-canvas"]').should('have.prop', 'width', 1920)
+    // The path canvas covers the 1920x1080 video and draws at the screen's
+    // devicePixelRatio: its backing store is its size on screen x DPR, with
+    // the video's 16:9 shape (the drawing is scaled to video pixels).
+    cy.window().then((win) => {
+      cy.get<HTMLCanvasElement>('[data-testid="trajectory-canvas"]').should(($canvas) => {
+        const canvas = $canvas[0]
+        const dpr = Math.max(1, win.devicePixelRatio)
+        expect(canvas.width).to.be.closeTo(canvas.getBoundingClientRect().width * dpr, 1)
+        expect(canvas.width / canvas.height).to.be.closeTo(1920 / 1080, 0.01)
+      })
+    })
     cy.get('[data-cy="download-csv"]').should('have.attr', 'href', '/mock/result.csv')
     cy.get('[data-cy="run-again"]')
       .should('have.attr', 'href', '/analyze/bright_balloon_sample_video.mp4?color=ff4500&threshold=100')
