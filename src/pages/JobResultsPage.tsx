@@ -25,11 +25,13 @@ const POLL_MS = 2000
 // One "label: value" pair in the header
 function Setting({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Box>
-      <Typography variant="overline" color="text.secondary" sx={{ display: 'block', lineHeight: 1.6 }}>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography component="dt" variant="overline" color="text.secondary" sx={{ display: 'block', lineHeight: 1.6 }}>
         {label}
       </Typography>
-      <Box sx={{ typography: 'body2' }}>{children}</Box>
+      <Box component="dd" sx={{ typography: 'body2', m: 0, overflowWrap: 'anywhere' }}>
+        {children}
+      </Box>
     </Box>
   )
 }
@@ -137,20 +139,20 @@ export default function JobResultsPage() {
       <PageBreadcrumbs items={crumbs} />
 
       {/* Header: video name, run settings and actions */}
-      <Paper sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+      <Paper component="section" aria-label="Run settings" sx={{ p: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, md: 3 } }}>
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={2}
           sx={{ justifyContent: 'space-between', alignItems: { md: 'flex-start' } }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1.5 }}>
+            <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap', mb: 2.5 }}>
               <Typography variant="h1" sx={{ overflowWrap: 'anywhere' }}>
                 {job.filename}
               </Typography>
               <JobStatusChip status={job.status} />
             </Stack>
-            <Stack direction="row" sx={{ flexWrap: 'wrap', columnGap: 4, rowGap: 1.5 }}>
+            <Stack component="dl" direction="row" sx={{ m: 0, flexWrap: 'wrap', columnGap: { xs: 3, sm: 5 }, rowGap: 2 }}>
               <Setting label="Target color">
                 <ColorSwatch color={job.targetColor} />
               </Setting>
@@ -217,8 +219,9 @@ export default function JobResultsPage() {
         <Box
           sx={{
             display: 'grid',
-            gap: 2,
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(0, 2fr)' },
+            gap: { xs: 2, md: 3 },
+            // video + summary side by side from 1200 px; stacked below that
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 3fr) minmax(0, 2fr)' },
             alignItems: 'start',
           }}
         >
@@ -235,7 +238,7 @@ export default function JobResultsPage() {
           </Stack>
 
           {/* Full-width row under the video and the tiles */}
-          <Paper sx={{ p: 2, gridColumn: '1 / -1' }}>
+          <Paper component="section" aria-label="Position over time" sx={{ p: { xs: 2, sm: 3 }, gridColumn: '1 / -1' }}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
               spacing={2}
@@ -257,7 +260,7 @@ export default function JobResultsPage() {
                   if (value > 0) setMaxJump(value)
                 }}
                 slotProps={{ htmlInput: { min: 1, step: 10, 'data-cy': 'max-jump' } }}
-                sx={{ width: 190 }}
+                sx={{ width: { xs: '100%', sm: 190 } }}
               />
             </Stack>
             <PositionChart
@@ -269,7 +272,7 @@ export default function JobResultsPage() {
             />
           </Paper>
 
-          <Paper sx={{ p: 2, gridColumn: '1 / -1' }}>
+          <Paper component="section" aria-label="CSV data" sx={{ p: { xs: 2, sm: 3 }, gridColumn: '1 / -1' }}>
             <TrackTable
               points={points}
               suspectIndexes={suspectIndexes}

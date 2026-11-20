@@ -198,3 +198,87 @@ right place.
 
 **Checked:** tsc, lint, unit tests, build, Cypress component tests and E2E
 tests on this commit.
+
+## Step 3: app shell, page layouts and accessibility fixes — done
+
+**App shell**
+
+- **Skip link** (`SkipLink.tsx`): the first Tab on any page shows "Skip to main
+  content"; Enter moves focus into `<main id="main-content" tabIndex={-1}>`.
+- **Landmarks:** `<header>` (the AppBar), `<nav aria-label="Main">` around the
+  Videos / Jobs tabs, `<main>`. Every page has exactly one `h1`.
+- **Top bar:** same content width as the page (1536 px max), serif wordmark,
+  new logo, line-icon mode toggle (sun / moon SVG instead of text glyphs) with
+  a 40 px target. Below 600 px the bar wraps into two tidy rows (logo + mode
+  toggle, then tabs + server badge) using CSS `order`; before, the toggle and
+  badge wrapped awkwardly and at 320 px pushed the page wider.
+- **Content width:** `Container maxWidth="xl"` (1536 px) with gutters of
+  16 / 24 / 32 px; on 1920–2560 px screens the content stays centred at a
+  readable width instead of stretching.
+
+**Pages**
+
+- **Videos:** cards have more padding, an `h2` per card title (so headings
+  go h1 → h2), and the size/length text no longer wraps mid-value.
+- **Analyze:** "Analyze" overline + `h1` file name (was `h4`), the view-mode
+  toggle no longer stretches across the page, panels have `h2` titles
+  ("Processing settings", "Frame check", the new "Color tools", the
+  histogram accordion). Under the video the grid is settings (5/12) and checks
+  + color tools (7/12) from 900 px, one column below. The threshold slider's
+  end labels stay inside the card (they overflowed on phones). The upload /
+  processing progress alert is `role="status"` (polite) so the percentage
+  isn't shouted on every change; errors stay `role="alert"`.
+- **Video player:** play/pause shows an icon plus the word, frame-step buttons
+  are icons with `aria-label`s ("Previous frame" / "Next frame") instead of
+  text like `◀|`, the speed buttons show "2x" and are named "2x speed" (the
+  visible text is part of the name, WCAG 2.5.3), the seek slider announces
+  "0:03.20 of 0:30.03" (`getAriaValueText`), the controls are a labelled
+  group, and time / frame use the mono font.
+- **Jobs:** the table sits in `ScrollableTable`: on narrow screens it scrolls
+  inside its own focusable, labelled region with a visible "Scroll sideways
+  to see every column →" hint; the page itself never scrolls sideways. The
+  row buttons are named "Results for job …" (starts with the visible word;
+  axe flagged "Open job …" as a label/name mismatch). A hidden `role="status"`
+  announces "3 jobs shown" when a filter changes. Filter chips wrap with even
+  gaps.
+- **Job results:** roomier header with the settings as a real description list
+  (`dl/dt/dd`), sections labelled, the jump-size field full width on phones,
+  the CSV table in a `ScrollableTable` too. The chart's y line is dashed and
+  x solid (the legend says so), so the two series differ by more than color;
+  the chart's label points to the CSV table as the keyboard-friendly
+  equivalent (rows are focusable and Enter / Space seeks).
+- **Small fixes:** hard-coded `grey.100` / `grey.200` / white backgrounds (the
+  API request box, placeholders, the drop overlay) now use theme tokens, so
+  dark mode no longer shows a white box; `'monospace'` became the theme's
+  mono font everywhere; table headers stay on one line.
+
+**Bug found by the new responsive test:** at 320 px the Jobs page scrolled
+sideways by 540 px even though the table had its own scroll box. The visually
+hidden "Actions" header is `position: absolute`, and with no positioned
+ancestor inside the scroll box it was placed relative to the page.
+`ScrollableTable` now sets `position: relative`.
+
+**New tests**
+
+- `cypress/e2e/a11y.cy.ts` (cypress-axe): every page in light and dark mode,
+  plus the Analyze page with a sample taken and the histogram open, must have
+  no serious or critical violations (WCAG 2.0/2.1/2.2 A + AA tags and
+  best practices); the skip link moves focus to `<main>`; every page has one
+  `h1`, a header, the main nav and `main`.
+- `cypress/e2e/responsive.cy.ts`: no page scrolls sideways at 320, 375, 768,
+  1024, 1440 or 2560 px; `main` is at most 1536 px wide on a 2560 px screen;
+  the Analyze page puts the binarized view under the video at 375 px and next
+  to it at 1280 px.
+
+**Files:** `src/App.tsx`, `src/components/layout/SkipLink.tsx`, `TopBar.tsx`,
+`src/components/shared/ScrollableTable.tsx`, `src/pages/*.tsx`,
+`src/components/player/VideoPlayer.tsx`, `LocalVideoPicker.tsx`,
+`src/components/ProcessingControls.tsx`, `src/components/color/RequestPreview.tsx`,
+`TargetColorFromSamples.tsx`, `TrackingColorLegend.tsx`,
+`src/components/results/PositionChart.tsx`, `TrackTable.tsx`, `SummaryTiles.tsx`,
+`src/components/videos/VideoCard.tsx`, `LocalFileCard.tsx`, `src/theme.ts`
+(nowrap table headers), `cypress/e2e/a11y.cy.ts`, `cypress/e2e/responsive.cy.ts`,
+`cypress/design/screenshots.cy.ts` (filters, unsticks the header for captures).
+
+**Checked:** tsc, lint, unit tests, build, all Cypress component and E2E
+specs (including the two new ones).

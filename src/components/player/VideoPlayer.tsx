@@ -5,6 +5,7 @@ import { describeMediaError } from './localVideo'
 import { loadVideo, seekBy, seekTo, setPlaybackSpeed, stepFrames, togglePlay } from './videoControls'
 import { countFrames, DEFAULT_FPS, estimateFps, formatTime, PLAYBACK_SPEEDS, timeToFrame } from './videoMath'
 import { watchVideoFrames } from './watchVideoFrames'
+import { monoFontFamily } from '../../theme'
 
 export type VideoPlayerProps = {
   /** URL of the video, or a File from the user's computer */
@@ -141,7 +142,7 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
   return (
     <Box>
       {/* lineHeight 0 removes the gap under the video, so overlays line up */}
-      <Box sx={{ position: 'relative', lineHeight: 0, bgcolor: 'common.black', borderRadius: 1, overflow: 'hidden' }}>
+      <Box sx={{ position: 'relative', lineHeight: 0, bgcolor: '#000', borderRadius: 1, overflow: 'hidden' }}>
         <video
           ref={attachVideo}
           preload="auto"
@@ -160,6 +161,8 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
 
       <Slider
         aria-label="Seek"
+        // screen readers hear "0:03.20 of 0:30.03" instead of a raw number of seconds
+        getAriaValueText={(value) => `${formatTime(value)} of ${formatTime(duration)}`}
         size="small"
         min={0}
         max={duration || 1}
@@ -169,23 +172,49 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
         onChange={(_, value) => {
           if (video && typeof value === 'number') seekTo(video, value)
         }}
-        sx={{ mt: 1 }}
+        // a little inset, so the thumb at 0:00 isn't cut off by the card edge
+        sx={{ mt: 1.5, mx: 1, width: 'calc(100% - 16px)' }}
       />
 
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        role="group"
+        aria-label="Video controls"
+        sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1.5 }}
+      >
         <Tooltip title="One frame back (,)">
-          <Button variant="outlined" size="small" onClick={() => runShortcut('frame-back')} aria-label="Previous frame">
-            ◀|
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => runShortcut('frame-back')}
+            aria-label="Previous frame"
+            sx={{ minWidth: 44, px: 1 }}
+          >
+            <StepIcon direction="back" />
           </Button>
         </Tooltip>
         <Tooltip title="Play / pause (Space)">
-          <Button variant="contained" size="small" onClick={() => runShortcut('toggle-play')} sx={{ minWidth: 90 }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => runShortcut('toggle-play')}
+            startIcon={playing ? <PauseIcon /> : <PlayIcon />}
+            sx={{ minWidth: 96 }}
+          >
             {playing ? 'Pause' : 'Play'}
           </Button>
         </Tooltip>
         <Tooltip title="One frame forward (.)">
-          <Button variant="outlined" size="small" onClick={() => runShortcut('frame-forward')} aria-label="Next frame">
-            |▶
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => runShortcut('frame-forward')}
+            aria-label="Next frame"
+            sx={{ minWidth: 44, px: 1 }}
+          >
+            <StepIcon direction="forward" />
           </Button>
         </Tooltip>
 
@@ -199,22 +228,62 @@ export function VideoPlayer({ src, onVideoElement, children }: VideoPlayerProps)
           aria-label="Playback speed"
         >
           {PLAYBACK_SPEEDS.map((option) => (
-            <ToggleButton key={option} value={option} aria-label={`${option}x speed`}>
-              {option}×
+            // The visible text ("2x") is part of the name ("2x speed"), as WCAG 2.5.3 asks
+            <ToggleButton key={option} value={option} aria-label={`${option}x speed`} sx={{ px: 1.25 }}>
+              {option}x
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
 
-        <Typography variant="body2" sx={{ fontFamily: 'monospace' }} data-testid="current-time">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </Typography>
-        <Typography variant="body2" sx={{ fontFamily: 'monospace' }} data-testid="frame-number">
-          Frame {frame} / {totalFrames}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {measuredFps === null ? `${DEFAULT_FPS} fps (assumed)` : `${measuredFps} fps`}
-        </Typography>
+        {/* Time, frame and fps: monospace with tabular digits, so they don't jitter */}
+        <Stack direction="row" spacing={2} useFlexGap sx={{ alignItems: 'baseline', flexWrap: 'wrap', ml: { md: 'auto' } }}>
+          <Typography variant="body2" sx={{ fontFamily: monoFontFamily }} data-testid="current-time">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </Typography>
+          <Typography variant="body2" sx={{ fontFamily: monoFontFamily }} data-testid="frame-number">
+            Frame {frame} / {totalFrames}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {measuredFps === null ? `${DEFAULT_FPS} fps (assumed)` : `${measuredFps} fps`}
+          </Typography>
+        </Stack>
       </Stack>
     </Box>
+  )
+}
+
+// Small icons for the controls, drawn here so no icon package is needed.
+// They are aria-hidden: the buttons' text or aria-label names them.
+
+function PlayIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+    </svg>
+  )
+}
+
+function PauseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
+      <rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** A triangle and a bar: "step one frame" back or forward. */
+function StepIcon({ direction }: { direction: 'back' | 'forward' }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      style={{ transform: direction === 'back' ? 'scaleX(-1)' : undefined }}
+    >
+      <path d="M3 3v10l7-5z" fill="currentColor" />
+      <rect x="11" y="3" width="2" height="10" rx="1" fill="currentColor" />
+    </svg>
   )
 }

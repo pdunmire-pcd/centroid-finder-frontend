@@ -317,6 +317,7 @@ export function createAppTheme(mode: PaletteMode, { highContrast = false }: Them
             fontSize: '0.75rem',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
+            whiteSpace: 'nowrap', // short headers on one line; the table scrolls instead
             backgroundColor: t.subtle,
           },
         },

@@ -58,7 +58,9 @@ export function LocalFileCard() {
       <Box aria-hidden="true" sx={{ fontSize: 28, lineHeight: 1, color: 'primary.main' }}>
         ⇪
       </Box>
-      <Typography variant="subtitle2">Open from this computer</Typography>
+      <Typography variant="subtitle2" component="h2">
+        Open from this computer
+      </Typography>
       <Typography variant="caption" color="text.secondary">
         Drop a video here, or choose a file. It stays on your computer.
       </Typography>

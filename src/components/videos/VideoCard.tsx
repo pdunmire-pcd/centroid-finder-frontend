@@ -35,14 +35,14 @@ export function VideoCard({ video }: { video: VideoInfo }) {
             sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </Box>
-        <Stack spacing={1} sx={{ p: 1.5, flexGrow: 1 }}>
-          <Typography variant="subtitle2" noWrap title={video.filename}>
+        <Stack spacing={1.25} sx={{ p: 2, flexGrow: 1 }}>
+          <Typography variant="subtitle2" component="h2" noWrap title={video.filename}>
             {video.filename}
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <VideoStatusChip status={video.status} />
             {details.length > 0 && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                 {details.join(' · ')}
               </Typography>
             )}

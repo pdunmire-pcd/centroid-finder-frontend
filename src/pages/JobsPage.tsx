@@ -6,12 +6,10 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Paper,
   Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   Tooltip,
@@ -21,6 +19,7 @@ import { getJobs } from '../api'
 import type { JobRecord } from '../types'
 import { monoFontFamily, visuallyHiddenSx } from '../theme'
 import { ColorSwatch } from '../components/results/ColorSwatch'
+import { ScrollableTable } from '../components/shared/ScrollableTable'
 import { JobStatusChip } from '../components/results/JobStatusChip'
 import { filterJobs, formatDateTime, formatRelativeTime, shortJobId } from '../components/results/format'
 import type { JobFilter } from '../components/results/format'
@@ -82,7 +81,7 @@ export default function JobsPage() {
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
-        sx={{ mb: 2, justifyContent: 'space-between', alignItems: { sm: 'flex-end' } }}
+        sx={{ mb: 3, justifyContent: 'space-between', alignItems: { sm: 'flex-end' } }}
       >
         <Box>
           <Typography variant="h1" gutterBottom>
@@ -93,13 +92,13 @@ export default function JobsPage() {
             {anyProcessing && ' Refreshing automatically while a job is running.'}
           </Typography>
         </Box>
-        <Button variant="outlined" onClick={() => setReloadKey((key) => key + 1)}>
+        <Button variant="outlined" onClick={() => setReloadKey((key) => key + 1)} sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Refresh
         </Button>
       </Stack>
 
       {/* Filter chips: role="group" + aria-pressed tells screen readers which one is on */}
-      <Stack direction="row" spacing={1} role="group" aria-label="Filter by status" sx={{ mb: 2, flexWrap: 'wrap', rowGap: 1 }}>
+      <Stack direction="row" spacing={1} useFlexGap role="group" aria-label="Filter by status" sx={{ mb: 3, flexWrap: 'wrap' }}>
         {FILTERS.map((f) => (
           <Chip
             key={f.value}
@@ -119,10 +118,14 @@ export default function JobsPage() {
         </Box>
       )}
       {!loading && error && <Alert severity="error">{error}</Alert>}
+      {/* Announces the number of jobs shown when a filter changes */}
+      <Box role="status" sx={visuallyHiddenSx}>
+        {!loading && !error && `${shown.length} ${shown.length === 1 ? 'job' : 'jobs'} shown`}
+      </Box>
 
       {!loading && !error && (
-        // overflowX lets the table scroll sideways on a phone instead of squashing
-        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+        // Scrolls sideways on a phone instead of squashing (with a visible hint)
+        <ScrollableTable label="Processing jobs">
           <Table size="small" aria-label="Processing jobs" sx={{ minWidth: 760 }}>
             <TableHead>
               <TableRow>
@@ -142,7 +145,7 @@ export default function JobsPage() {
             <TableBody>
               {shown.map((job) => (
                 <TableRow key={job.jobId} hover data-cy="job-row">
-                  <TableCell sx={{ fontFamily: monoFontFamily }} title={job.jobId}>
+                  <TableCell sx={{ fontFamily: monoFontFamily, whiteSpace: 'nowrap' }} title={job.jobId}>
                     {shortJobId(job.jobId)}
                   </TableCell>
                   <TableCell sx={{ maxWidth: 240 }}>
@@ -175,7 +178,8 @@ export default function JobsPage() {
                       size="small"
                       component={RouterLink}
                       to={`/jobs/${encodeURIComponent(job.jobId)}`}
-                      aria-label={`Open job ${job.jobId}`}
+                      // starts with the visible word, as WCAG 2.5.3 (label in name) asks
+                      aria-label={`${job.status === 'done' ? 'Results' : 'Details'} for job ${job.jobId}`}
                     >
                       {job.status === 'done' ? 'Results' : 'Details'}
                     </Button>
@@ -193,7 +197,7 @@ export default function JobsPage() {
               )}
             </TableBody>
           </Table>
-        </TableContainer>
+        </ScrollableTable>
       )}
     </>
   )

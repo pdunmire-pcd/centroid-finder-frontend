@@ -16,7 +16,7 @@ export function SummaryTiles({ summary }: { summary: TrackSummary }) {
       }}
     >
       {summaryTiles(summary).map((tile) => (
-        <Paper key={tile.label} sx={{ p: 1.5 }} data-cy="summary-tile">
+        <Paper key={tile.label} sx={{ p: { xs: 1.5, sm: 2 } }} data-cy="summary-tile">
           <Typography component="dt" variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
             {tile.label}
           </Typography>

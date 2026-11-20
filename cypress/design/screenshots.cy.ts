@@ -12,18 +12,24 @@
 
 import { DESIGN_PAGES, THEMES, visitInTheme } from '../support/designPages'
 
-const WIDTHS = [375, 768, 1280, 1920]
 const HEIGHT = 900
 const shotSet = String(Cypress.expose('shotSet') ?? 'after')
+// Optional filters while working on one page: --expose 'only=analyze videos,widths=375 1280'
+const only = Cypress.expose('only') ? String(Cypress.expose('only')).split(' ') : null
+const WIDTHS = Cypress.expose('widths') ? String(Cypress.expose('widths')).split(' ').map(Number) : [375, 768, 1280, 1920]
+const pages = only ? DESIGN_PAGES.filter((page) => only.includes(page.name)) : DESIGN_PAGES
 
 describe('design screenshots', () => {
-  for (const page of DESIGN_PAGES) {
+  for (const page of pages) {
     for (const theme of THEMES) {
       it(`${page.name} (${theme})`, () => {
         for (const width of WIDTHS) {
           cy.viewport(width, HEIGHT)
           visitInTheme(page, theme)
           cy.wait(1000) // let thumbnails and the first video frame settle
+          // A full-page capture scrolls and stitches; a sticky top bar would be
+          // copied into every slice, so unstick it just for the picture.
+          cy.get('header').invoke('css', 'position', 'static')
           cy.screenshot(`${shotSet}/${page.name}-${theme}-${width}`, { capture: 'fullPage', overwrite: true })
         }
       })
