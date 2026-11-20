@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 
 // Express runs on port 3000 while Vite runs on port 5173.
 // If your server uses another PORT, start Vite with BACKEND_URL=http://localhost:<port>.
@@ -30,5 +31,10 @@ export default defineConfig({
       // Express supports Range requests, so the browser can seek in the video.
       '^/videos/.+': { target: backend, bypass: sendPagesToReact },
     },
+  },
+  test: {
+    // .claude/ holds local copies of this repo made by Claude Code agents.
+    // Their tests are duplicates, so Vitest skips them.
+    exclude: [...configDefaults.exclude, '.claude/**'],
   },
 })
