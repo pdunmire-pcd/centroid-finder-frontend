@@ -42,6 +42,19 @@ if [ ! -e "$BACKEND_DIR/../.env" ]; then
   exit 1
 fi
 
+# Use the faster JAR (parallel frames + per-frame speed-ups) if it has been built.
+# Setting JAR_PATH here wins over the .env file, because the server's dotenv never
+# overwrites a variable that is already set. Set JAR_PATH yourself to choose another JAR.
+FAST_JAR="$PARENT_DIR/centroid-finder-proc-parallel/processor/target/videoprocessor.jar"
+if [ -z "${JAR_PATH:-}" ] && [ -f "$FAST_JAR" ]; then
+  export JAR_PATH="$FAST_JAR"
+fi
+if [ -n "${JAR_PATH:-}" ]; then
+  echo "Using the JAR at $JAR_PATH"
+else
+  echo "Using the JAR from .env"
+fi
+
 for port in "$FRONTEND_PORT" "$BACKEND_PORT"; do
   if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
     echo "Port $port is already in use. Stop whatever is using it (lsof -i :$port) and try again."
