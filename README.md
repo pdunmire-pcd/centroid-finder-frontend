@@ -15,6 +15,7 @@ The app lets a user choose a video, preview its first frame, tune target-color a
 - Mock API mode for frontend development and Cypress tests
 - Cypress E2E and component tests
 - 36 Vitest unit tests for the Java-matching centroid algorithms
+- **Unique feature: one-switch mock mode** that switches every API and preview source to deterministic local data, allowing frontend development and testing without the Express server or JAR
 
 ## Setup
 
@@ -115,10 +116,10 @@ npm run test:component
 
 ## Screenshots
 
-Add final screenshots here after visual review:
+### Video chooser
 
-- Video chooser
-- Preview page
-- Live binarized canvas
-- Successful processing and CSV download
-- Processing error state
+![Video chooser](docs/screenshots/video-chooser.png)
+
+### Video preview and live processing
+
+![Video preview](docs/screenshots/video-preview.png)
