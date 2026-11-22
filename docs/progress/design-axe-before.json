@@ -1,0 +1,114 @@
+[
+  {
+    "page": "videos",
+    "theme": "light",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "videos",
+    "theme": "light",
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 1,
+    "help": "Heading levels should only increase by one"
+  },
+  {
+    "page": "videos",
+    "theme": "dark",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "videos",
+    "theme": "dark",
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 1,
+    "help": "Heading levels should only increase by one"
+  },
+  {
+    "page": "analyze",
+    "theme": "light",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 2,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "analyze",
+    "theme": "light",
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 2,
+    "help": "Heading levels should only increase by one"
+  },
+  {
+    "page": "analyze",
+    "theme": "light",
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "nodes": 9,
+    "help": "Elements must have their visible text as part of their accessible name"
+  },
+  {
+    "page": "analyze",
+    "theme": "dark",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "analyze",
+    "theme": "dark",
+    "id": "heading-order",
+    "impact": "moderate",
+    "nodes": 2,
+    "help": "Heading levels should only increase by one"
+  },
+  {
+    "page": "analyze",
+    "theme": "dark",
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "nodes": 9,
+    "help": "Elements must have their visible text as part of their accessible name"
+  },
+  {
+    "page": "jobs",
+    "theme": "light",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "jobs",
+    "theme": "light",
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "nodes": 5,
+    "help": "Elements must have their visible text as part of their accessible name"
+  },
+  {
+    "page": "jobs",
+    "theme": "dark",
+    "id": "color-contrast",
+    "impact": "serious",
+    "nodes": 1,
+    "help": "Elements must meet minimum color contrast ratio thresholds"
+  },
+  {
+    "page": "jobs",
+    "theme": "dark",
+    "id": "label-content-name-mismatch",
+    "impact": "serious",
+    "nodes": 5,
+    "help": "Elements must have their visible text as part of their accessible name"
+  }
+]

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cypress test output
+cypress/downloads
+cypress/screenshots
+cypress/videos
+# Claude Code agent worktrees and local settings (never commit)
+.claude/

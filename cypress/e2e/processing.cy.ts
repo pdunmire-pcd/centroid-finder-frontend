@@ -1,13 +1,14 @@
 describe('video processing', () => {
   beforeEach(() => {
-    cy.visit('/preview/ensantina.mp4')
+    cy.visit('/preview/demo.mp4')
   })
 
-  it('shows the original as a playable video', () => {
-    cy.get('[data-cy="original-video"]')
-      .should('have.prop', 'tagName', 'VIDEO')
-      .and('have.attr', 'src', '/mock/videos/ensantina.mp4')
-      .and('have.attr', 'controls')
+  it('captures the main application views', () => {
+    cy.visit('/videos')
+    cy.screenshot('video-chooser', { capture: 'viewport' })
+
+    cy.visit('/preview/bright_balloon_sample_video.mp4')
+    cy.screenshot('video-preview', { capture: 'viewport' })
   })
 
   it('starts processing and displays the CSV link', () => {

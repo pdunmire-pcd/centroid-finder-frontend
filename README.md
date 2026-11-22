@@ -7,8 +7,7 @@ The app lets a user choose a video, preview its first frame, tune target-color a
 ## Features
 
 - Video chooser at `/videos` with loading and error states
-- Video cards that play a muted preview on hover
-- Routed preview at `/preview/:filename` with the playable original video
+- Routed preview at `/preview/:filename`
 - Live binarized canvas with the largest centroid marked
 - Target-color picker and 0–442 threshold slider
 - Background processing job submission and status polling
@@ -16,6 +15,7 @@ The app lets a user choose a video, preview its first frame, tune target-color a
 - Mock API mode for frontend development and Cypress tests
 - Cypress E2E and component tests
 - 36 Vitest unit tests for the Java-matching centroid algorithms
+- **Unique feature: one-switch mock mode** that switches every API and preview source to deterministic local data, allowing frontend development and testing without the Express server or JAR
 
 ## Setup
 
@@ -43,7 +43,7 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-Vite proxies `/api`, `/thumbnail`, `/video`, `/process`, and `/results` to `http://localhost:3000`. The proxy is configured in `vite.config.ts`.
+Vite proxies `/api`, `/thumbnail`, `/frame`, `/process`, `/results`, and video files under `/videos/<file>` to `http://localhost:3000` (set `BACKEND_URL` to use another address). `/videos` itself, and any page load (`Accept: text/html`), stays with React. The proxy is configured in `vite.config.ts`.
 
 ## Processing flow
 
@@ -56,6 +56,8 @@ Vite proxies `/api`, `/thumbnail`, `/video`, `/process`, and `/results` to `http
 7. On success, the UI provides a link to the generated CSV.
 
 The server's complete Euclidean color-distance threshold range is `0–442`. The slider intentionally uses `442` so every possible color distance is selectable.
+
+Extra endpoints (not in the class API spec, which stays unchanged): `GET /api/videos/details` (videos with status and size), `POST /api/videos` (upload, field `video`), `GET /api/jobs` and `GET /api/jobs/:id`, `GET /frame/:filename?t=<seconds>` (PNG), and `GET /api/health`. `src/api.ts` wraps them all; in mock mode `src/mock/backend.ts` fakes them in memory.
 
 ## Testing
 
@@ -103,7 +105,7 @@ npm run test:component
 | --- | --- |
 | `src/api.ts` | Backend and mock API functions |
 | `src/mock/` | Mock API responses |
-| `public/mock/` | Mock videos, first-frame thumbnails, and CSV file |
+| `public/mock/` | Mock thumbnail and CSV files |
 | `src/hoc/withLoading.tsx` | Loading/error wrapper for data components |
 | `src/pages/VideoChooserPage.tsx` | `/videos` video chooser |
 | `src/pages/PreviewPage.tsx` | `/preview/:filename` preview and processing page |
@@ -116,10 +118,10 @@ npm run test:component
 
 ## Screenshots
 
-Add final screenshots here after visual review:
+### Video chooser
 
-- Video chooser
-- Preview page
-- Live binarized canvas
-- Successful processing and CSV download
-- Processing error state
+![Video chooser](docs/screenshots/video-chooser.png)
+
+### Video preview and live processing
+
+![Video preview](docs/screenshots/video-preview.png)

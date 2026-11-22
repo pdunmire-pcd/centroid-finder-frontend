@@ -10,6 +10,15 @@ import {
 } from '@mui/material'
 import { useEffect } from 'react'
 
+// Largest possible color distance (black to white is about 441.7).
+const MAX_THRESHOLD = 442
+
+// Labels under the two ends of the slider.
+const THRESHOLD_MARKS = [
+  { value: 0, label: 'Exact match' },
+  { value: MAX_THRESHOLD, label: 'Any color' },
+]
+
 export type ProcessingControlsProps = {
   filename: string
   threshold: number
@@ -30,15 +39,15 @@ export function ProcessingControls({
   isProcessing,
 }: ProcessingControlsProps) {
   useEffect(() => {
-    if (typeof threshold !== 'number' || threshold < 0 || threshold > 442) {
+    if (typeof threshold !== 'number' || threshold < 0 || threshold > MAX_THRESHOLD) {
       onThresholdChange(128)
     }
   }, [threshold, onThresholdChange])
 
   return (
-    <Card sx={{ maxWidth: 640, width: '100%' }}>
-      <CardContent>
-        <Typography variant="h5" component="h2" gutterBottom>
+    <Card sx={{ width: '100%' }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h2" gutterBottom>
           Processing Settings
         </Typography>
 
@@ -51,16 +60,43 @@ export function ProcessingControls({
             <Typography id="threshold-label" gutterBottom>
               Threshold: {threshold}
             </Typography>
-            <Slider
-              aria-labelledby="threshold-label"
-              value={threshold}
-              onChange={(_, value) => {
-                if (typeof value === 'number') onThresholdChange(value)
-              }}
-              min={0}
-              max={442}
-              valueLabelDisplay="auto"
-            />
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 2, sm: 3 }, pb: 1 }}>
+              <Slider
+                aria-labelledby="threshold-label"
+                value={threshold}
+                onChange={(_, value) => {
+                  if (typeof value === 'number') onThresholdChange(value)
+                }}
+                min={0}
+                max={MAX_THRESHOLD}
+                marks={THRESHOLD_MARKS}
+                valueLabelDisplay="auto"
+                sx={{
+                  mx: 1,
+                  // keep the two end labels inside the slider's box (no overflow on phones)
+                  '& .MuiSlider-markLabel[data-index="0"]': { transform: 'translateX(-8px)' },
+                  '& .MuiSlider-markLabel[data-index="1"]': { transform: 'translateX(calc(-100% + 8px))' },
+                }}
+              />
+              <TextField
+                label="Threshold"
+                type="number"
+                size="small"
+                value={threshold}
+                onChange={(event) => {
+                  // ignore an empty box while the user is still typing
+                  if (event.target.value === '') return
+                  const typed = Math.round(Number(event.target.value))
+                  if (Number.isNaN(typed)) return
+                  onThresholdChange(Math.min(MAX_THRESHOLD, Math.max(0, typed)))
+                }}
+                slotProps={{ htmlInput: { min: 0, max: MAX_THRESHOLD, step: 1, 'data-testid': 'threshold-input' } }}
+                sx={{ width: 110, flexShrink: 0 }}
+              />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              A pixel is tracked when its color distance to the target is less than the threshold.
+            </Typography>
           </Box>
 
           <TextField
