@@ -7,7 +7,8 @@ The app lets a user choose a video, preview its first frame, tune target-color a
 ## Features
 
 - Video chooser at `/videos` with loading and error states
-- Routed preview at `/preview/:filename`
+- Video cards that play a muted preview on hover
+- Routed preview at `/preview/:filename` with the playable original video
 - Live binarized canvas with the largest centroid marked
 - Target-color picker and 0–442 threshold slider
 - Background processing job submission and status polling
@@ -42,7 +43,7 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-Vite proxies `/api`, `/thumbnail`, `/process`, and `/results` to `http://localhost:3000`. The proxy is configured in `vite.config.ts`.
+Vite proxies `/api`, `/thumbnail`, `/video`, `/process`, and `/results` to `http://localhost:3000`. The proxy is configured in `vite.config.ts`.
 
 ## Processing flow
 
@@ -102,7 +103,7 @@ npm run test:component
 | --- | --- |
 | `src/api.ts` | Backend and mock API functions |
 | `src/mock/` | Mock API responses |
-| `public/mock/` | Mock thumbnail and CSV files |
+| `public/mock/` | Mock videos, first-frame thumbnails, and CSV file |
 | `src/hoc/withLoading.tsx` | Loading/error wrapper for data components |
 | `src/pages/VideoChooserPage.tsx` | `/videos` video chooser |
 | `src/pages/PreviewPage.tsx` | `/preview/:filename` preview and processing page |

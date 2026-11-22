@@ -10,6 +10,8 @@ export default defineConfig({
     proxy: {
       '/api': backend,
       '/thumbnail': backend,
+      // Regex so only /video/<file> is proxied, not the /videos page route
+      '^/video/': backend,
       '/process': backend,
       '/results': backend,
     },
