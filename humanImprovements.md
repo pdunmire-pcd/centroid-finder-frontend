@@ -51,10 +51,23 @@ Other error handling improvements?
 
 # Writing documentation
 - What portions of your code are missing Javadoc/JSdoc for the methods/classes?
+  src/centroid/engine.ts - need more comments
+  api.ts - need more comments 
+  backened.ts - doesnt have docs 
+  most files contain comments rather than jsdoc 
+  
 - What documentation could be made clearer or improved?
+  README is out of date and needs to be improved.
+
 - Are there sections of dead code that are commented out?
+  Did not find any by hand
+
 - Where would be the most important places to add documentation to make your code easier to read?
+  api.ts
+  mockbackend. (im not sure if we are keeping this or not)
+  engine.ts 
 - Other documentation improvements?
+  
 
 # Improving performance (optional)
 - What parts of your code / tests run particularly slowly?
