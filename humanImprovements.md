@@ -4,6 +4,9 @@
   
 
 - How can you split up large methods or classes into smaller components?
+  analyzePage.tsx has 366 lines, this can possibly be split up. 
+  centroid/engine.ts has 380 lines 
+  
 - Are there unused files/methods that can be removed?
 - Where would additional Java interfaces be appropriate?
 - How can you make things simpler, more-usable, and easier to maintain?
