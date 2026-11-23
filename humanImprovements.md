@@ -38,8 +38,14 @@
 
 # Improving error handling
 - What parts of your code are brittle?
+   AnalyzePage.tsx
+   Some paths are hard coded
+
 - Where could you better be using exceptions?
+  Im not sure, we have TypeError and RangeError that we used in our code.
+
 - Where can you better add input validation to check invalid input?
+
 - How can you better be resolving/logging/surfacing errors? Hint: almost any place you're using "throws Exception" or "catch(Exception e)" should likely be improved to specify the specific types of exceptions that might be thrown or caught.
 Other error handling improvements?
 
