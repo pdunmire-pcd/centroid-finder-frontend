@@ -22,16 +22,19 @@ if [ "${1:-}" = "--mock" ]; then
   exec npx vite --mode mock --port "$FRONTEND_PORT" --strictPort
 fi
 
-# Find the server: BACKEND_DIR if set, otherwise next to the main frontend repo.
-# The upgraded server (with /api/jobs, /frame and uploads) is used if it exists.
-MAIN_REPO="$(cd "$(git -C "$FRONTEND_DIR" rev-parse --git-common-dir)/.." && pwd)"
+# The backend repo (centroid-finder) sits next to this frontend repo.
+# --path-format=absolute makes this work from the main folder and from worktrees.
+MAIN_REPO="$(cd "$(git -C "$FRONTEND_DIR" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)"
 PARENT_DIR="$(dirname "$MAIN_REPO")"
-if [ -z "${BACKEND_DIR:-}" ]; then
-  if [ -d "$PARENT_DIR/centroid-finder-upgrade-api/server" ]; then
-    BACKEND_DIR="$PARENT_DIR/centroid-finder-upgrade-api/server"
-  else
-    BACKEND_DIR="$PARENT_DIR/centroid-finder/server"
-  fi
+BACKEND_REPO="$PARENT_DIR/centroid-finder"
+
+# Use the server from the backend repo (its main branch has all our merged work).
+# Set BACKEND_DIR yourself to use a different server folder.
+BACKEND_DIR="${BACKEND_DIR:-$BACKEND_REPO/server}"
+if [ ! -d "$BACKEND_DIR" ]; then
+  echo "No server folder at $BACKEND_DIR."
+  echo "Clone the backend repo next to this one, or set BACKEND_DIR."
+  exit 1
 fi
 
 # The server reads the .env one folder above server/
@@ -42,15 +45,21 @@ if [ ! -e "$BACKEND_DIR/../.env" ]; then
   exit 1
 fi
 
-# Use the faster JAR (parallel frames + per-frame speed-ups) if it has been built.
-# Setting JAR_PATH here wins over the .env file, because the server's dotenv never
-# overwrites a variable that is already set. Set JAR_PATH yourself to choose another JAR.
-FAST_JAR="$PARENT_DIR/centroid-finder-proc-parallel/processor/target/videoprocessor.jar"
-if [ -z "${JAR_PATH:-}" ] && [ -f "$FAST_JAR" ]; then
-  export JAR_PATH="$FAST_JAR"
+# Use the JAR built from the backend repo's processor (run `mvn package` in
+# centroid-finder/processor to build it). Setting JAR_PATH here wins over the .env
+# file, because the server's dotenv never overwrites a variable that is already set.
+# Set JAR_PATH yourself to choose another JAR.
+REPO_JAR="$BACKEND_REPO/processor/target/videoprocessor.jar"
+if [ -z "${JAR_PATH:-}" ] && [ -f "$REPO_JAR" ]; then
+  export JAR_PATH="$REPO_JAR"
 fi
 if [ -n "${JAR_PATH:-}" ]; then
   echo "Using the JAR at $JAR_PATH"
+  # Warn if any Java source or pom.xml changed after the JAR was built
+  if [ "$JAR_PATH" = "$REPO_JAR" ] && [ -n "$(find "$BACKEND_REPO/processor/src/main" "$BACKEND_REPO/processor/pom.xml" -newer "$REPO_JAR" -print -quit 2>/dev/null)" ]; then
+    echo "WARNING: the Java code changed after this JAR was built."
+    echo "         Rebuild it first: (cd \"$BACKEND_REPO/processor\" && mvn package)"
+  fi
 else
   echo "Using the JAR from .env"
 fi
@@ -62,7 +71,7 @@ for port in "$FRONTEND_PORT" "$BACKEND_PORT"; do
   fi
 done
 
-echo "Starting the server from $BACKEND_DIR on port $BACKEND_PORT"
+echo "Starting the server from $BACKEND_DIR ($(git -C "$BACKEND_DIR" branch --show-current 2>/dev/null || echo '?') branch, commit $(git -C "$BACKEND_DIR" log --oneline -1 2>/dev/null | cut -c1-60)) on port $BACKEND_PORT"
 (cd "$BACKEND_DIR" && PORT="$BACKEND_PORT" npm run dev) &
 SERVER_PID=$!
 
